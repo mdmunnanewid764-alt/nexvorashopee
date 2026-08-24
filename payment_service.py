@@ -65,9 +65,10 @@ class BinancePaymentGateway:
                             "order": order_info
                         }
                     else:
+                        err_msg = data.get("message") or data.get("error") or f"HTTP {resp.status} error"
                         return {
                             "success": False,
-                            "message": data.get("message", f"HTTP {resp.status} error"),
+                            "message": err_msg,
                             "data": data
                         }
         except Exception as e:
@@ -95,9 +96,10 @@ class BinancePaymentGateway:
                             "order": data.get("order", {})
                         }
                     else:
+                        err_msg = data.get("message") or data.get("error") or f"HTTP {resp.status} error"
                         return {
                             "success": False,
-                            "message": data.get("message", f"HTTP {resp.status} error"),
+                            "message": err_msg,
                             "data": data
                         }
         except Exception as e:
@@ -132,9 +134,10 @@ class BinancePaymentGateway:
                             "data": data
                         }
                     else:
+                        err_msg = data.get("message") or data.get("error") or f"HTTP {resp.status} error"
                         return {
                             "success": False,
-                            "message": data.get("message", f"HTTP {resp.status} error"),
+                            "message": err_msg,
                             "data": data
                         }
         except Exception as e:
