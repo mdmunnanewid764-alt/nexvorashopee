@@ -177,6 +177,8 @@ def main():
     app.add_handler(CommandHandler("start", user_h.start_command))
     app.add_handler(CommandHandler("products", user_h.show_categories))
     app.add_handler(CommandHandler("buy", user_h.show_categories))
+    app.add_handler(CommandHandler("language", user_h.show_language_menu))
+    app.add_handler(CommandHandler("lang", user_h.show_language_menu))
     app.add_handler(CommandHandler("status", status_command))
     app.add_handler(CommandHandler("admin", admin_h.admin_panel))
 
@@ -277,6 +279,8 @@ def main():
     app.add_handler(CallbackQueryHandler(user_h.show_orders, pattern="^user_orders$"))
     app.add_handler(CallbackQueryHandler(user_h.show_profile, pattern="^user_profile$"))
     app.add_handler(CallbackQueryHandler(user_h.show_support, pattern="^user_support$"))
+    app.add_handler(CallbackQueryHandler(user_h.show_language_menu, pattern="^user_language_menu$"))
+    app.add_handler(CallbackQueryHandler(user_h.handle_set_language, pattern="^setlang_"))
 
     # Admin Callback Queries
     app.add_handler(CallbackQueryHandler(admin_h.admin_panel, pattern="^admin_home$"))

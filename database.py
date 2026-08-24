@@ -19,9 +19,16 @@ async def init_db():
                 total_deposited REAL DEFAULT 0.0,
                 total_spent REAL DEFAULT 0.0,
                 is_banned INTEGER DEFAULT 0,
+                language TEXT DEFAULT 'en',
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
+
+        # Migration: add language column if missing
+        try:
+            await db.execute("ALTER TABLE users ADD COLUMN language TEXT DEFAULT 'en'")
+        except Exception:
+            pass
 
         # Categories Table
         await db.execute("""
@@ -163,6 +170,18 @@ async def get_user(telegram_id: int):
         async with db.execute("SELECT * FROM users WHERE telegram_id = ?", (telegram_id,)) as cursor:
             user = await cursor.fetchone()
             return dict(user) if user else None
+
+async def get_user_language(telegram_id: int) -> str:
+    user = await get_user(telegram_id)
+    if user and user.get("language"):
+        return user["language"]
+    return "en"
+
+async def set_user_language(telegram_id: int, language: str) -> bool:
+    async with aiosqlite.connect(DATABASE_PATH) as db:
+        await db.execute("UPDATE users SET language = ? WHERE telegram_id = ?", (language, telegram_id))
+        await db.commit()
+        return True
 
 async def update_user_balance(telegram_id: int, amount: float, is_deposit: bool = False, is_spend: bool = False):
     async with aiosqlite.connect(DATABASE_PATH) as db:
