@@ -1,0 +1,308 @@
+import logging
+import asyncio
+import os
+from aiohttp import web
+from telegram import Update
+from telegram.request import HTTPXRequest
+from telegram.ext import (
+    Application,
+    CommandHandler,
+    CallbackQueryHandler,
+    MessageHandler,
+    ConversationHandler,
+    filters,
+    ContextTypes
+)
+from telegram.constants import ParseMode
+
+from config import BOT_TOKEN, ADMIN_ID, TELEGRAM_PROXY_URL, TELEGRAM_BASE_URL
+import database
+from payment_service import payment_gateway
+import handlers.user_handlers as user_h
+import handlers.admin_handlers as admin_h
+
+logging.basicConfig(
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    level=logging.INFO
+)
+logger = logging.getLogger(__name__)
+
+# -------------------- BACKGROUND DEPOSIT CHECKER --------------------
+
+async def auto_deposit_checker_job(context: ContextTypes.DEFAULT_TYPE):
+    """
+    Background worker that runs every 25 seconds to check pending deposits.
+    Automatically credits user balance when payment is detected as PAID.
+    """
+    try:
+        pending_deposits = await database.get_pending_deposits(limit=50)
+        if not pending_deposits:
+            return
+
+        currency = await database.get_setting("currency_symbol", "$")
+
+        for dep in pending_deposits:
+            trade_no = dep["merchant_trade_no"]
+            user_id = dep["user_id"]
+
+            res = await payment_gateway.get_payment_status(trade_no)
+            if not res.get("success"):
+                continue
+
+            order_info = res.get("order", {})
+            status = order_info.get("status", "").upper()
+
+            if status == "PAID":
+                amount = float(order_info.get("orderAmount", dep["order_amount"]))
+                paid_net = order_info.get("paidNetwork", "Multi-Chain / Binance Pay")
+                tx_id = order_info.get("transactionId", "")
+
+                # Credit user balance & update deposit
+                await database.update_user_balance(user_id, amount, is_deposit=True)
+                await database.mark_deposit_paid(trade_no, paid_network=paid_net, tx_hash=tx_id)
+
+                # Send direct notification to user
+                try:
+                    user_alert = (
+                        f"🎉 <b>Auto-Deposit Received & Confirmed!</b>\n\n"
+                        f"🔖 <b>Invoice:</b> <code>{trade_no}</code>\n"
+                        f"💰 <b>Amount Credited:</b> <code>{currency}{amount:.2f} USDT</code>\n"
+                        f"🌐 <b>Network:</b> <code>{paid_net}</code>\n\n"
+                        f"✨ <i>Your wallet has been credited automatically. Enjoy shopping!</i>"
+                    )
+                    await context.bot.send_message(chat_id=user_id, text=user_alert, parse_mode=ParseMode.HTML)
+                except Exception as e:
+                    logger.warning(f"Could not send deposit alert to user {user_id}: {e}")
+
+                # Notify Admin
+                try:
+                    admin_alert = (
+                        f"📥 <b>Deposit Confirmed!</b>\n\n"
+                        f"👤 User: <code>{user_id}</code>\n"
+                        f"💵 Amount: <code>{currency}{amount:.2f} USDT</code>\n"
+                        f"🔖 Invoice: <code>{trade_no}</code>\n"
+                        f"🌐 Network: <code>{paid_net}</code>"
+                    )
+                    await context.bot.send_message(chat_id=ADMIN_ID, text=admin_alert, parse_mode=ParseMode.HTML)
+                except Exception as e:
+                    logger.warning(f"Could not send deposit alert to admin: {e}")
+
+    except Exception as e:
+        logger.error(f"Error in auto_deposit_checker_job: {e}", exc_info=True)
+
+# -------------------- EXTRA COMMANDS --------------------
+
+async def status_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not context.args:
+        await update.message.reply_text("Usage: <code>/status &lt;ORDER_ID_OR_INVOICE_ID&gt;</code>", parse_mode=ParseMode.HTML)
+        return
+
+    code = context.args[0].strip()
+    dep = await database.get_deposit(code)
+    if dep:
+        status_res = await payment_gateway.get_payment_status(code)
+        status = status_res.get("order", {}).get("status", dep["status"])
+        await update.message.reply_text(
+            f"🔍 <b>Deposit Status: {code}</b>\n\n"
+            f"💰 Amount: <code>${dep['order_amount']:.2f} {dep['currency']}</code>\n"
+            f"📊 Status: <code>{status}</code>\n"
+            f"🌐 Network: <code>{dep.get('paid_network') or 'Pending'}</code>\n"
+            f"📅 Date: <code>{dep['created_at']}</code>",
+            parse_mode=ParseMode.HTML
+        )
+        return
+
+    order = await database.get_order_by_code(code)
+    if order:
+        await update.message.reply_text(
+            f"📦 <b>Order Status: {code}</b>\n\n"
+            f"🏷 Product: <code>{order['product_name']}</code>\n"
+            f"💵 Price: <code>${order['total_price']:.2f}</code>\n"
+            f"📊 Status: <code>{order['status']}</code>\n"
+            f"📅 Date: <code>{order['created_at']}</code>",
+            parse_mode=ParseMode.HTML
+        )
+        return
+
+    await update.message.reply_text(f"❌ No record found for ID: <code>{code}</code>", parse_mode=ParseMode.HTML)
+
+async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE):
+    logger.error(msg="Exception while handling an update:", exc_info=context.error)
+
+# -------------------- HEALTH CHECK WEB SERVER (FOR RENDER FREE TIER) --------------------
+
+async def health_check_handler(request):
+    return web.json_response({"status": "ok", "bot": "Nexvora Telegram Bot Live"})
+
+async def start_web_server():
+    port = int(os.environ.get("PORT", 0))
+    if port > 0:
+        app = web.Application()
+        app.router.add_get("/", health_check_handler)
+        app.router.add_get("/health", health_check_handler)
+        runner = web.AppRunner(app)
+        await runner.setup()
+        site = web.TCPSite(runner, "0.0.0.0", port)
+        await site.start()
+        logger.info(f"Health check web server started on port {port}")
+
+# -------------------- MAIN APP SETUP --------------------
+
+async def async_main():
+    await database.init_db()
+
+    # Start health check server if on Render / Heroku
+    await start_web_server()
+
+    # Build HTTPXRequest with custom timeouts
+    request_kwargs = {
+        "connection_pool_size": 16,
+        "connect_timeout": 30.0,
+        "read_timeout": 30.0,
+        "write_timeout": 30.0,
+        "pool_timeout": 30.0
+    }
+    if TELEGRAM_PROXY_URL:
+        request_kwargs["proxy"] = TELEGRAM_PROXY_URL
+
+    request = HTTPXRequest(**request_kwargs)
+    builder = Application.builder().token(BOT_TOKEN).request(request)
+    if TELEGRAM_BASE_URL:
+        builder = builder.base_url(TELEGRAM_BASE_URL)
+
+    app = builder.build()
+
+    # User Commands
+    app.add_handler(CommandHandler("start", user_h.start_command))
+    app.add_handler(CommandHandler("products", user_h.show_categories))
+    app.add_handler(CommandHandler("buy", user_h.show_categories))
+    app.add_handler(CommandHandler("status", status_command))
+    app.add_handler(CommandHandler("admin", admin_h.admin_panel))
+
+    # Conversation Handlers
+    app.add_handler(ConversationHandler(
+        entry_points=[CallbackQueryHandler(user_h.prompt_custom_deposit, pattern="^custom_deposit_btn$")],
+        states={user_h.CUSTOM_DEPOSIT_AMOUNT: [MessageHandler(filters.TEXT & ~filters.COMMAND, user_h.process_custom_deposit_input)]},
+        fallbacks=[CallbackQueryHandler(user_h.show_wallet, pattern="^user_wallet$")],
+        per_message=False
+    ))
+
+    app.add_handler(ConversationHandler(
+        entry_points=[CallbackQueryHandler(user_h.start_submit_tx, pattern="^txstart_")],
+        states={
+            user_h.SUBMIT_TX_NETWORK: [CallbackQueryHandler(user_h.handle_submit_tx_network, pattern="^txnet_")],
+            user_h.SUBMIT_TX_HASH: [MessageHandler(filters.TEXT & ~filters.COMMAND, user_h.handle_submit_tx_hash)]
+        },
+        fallbacks=[CallbackQueryHandler(user_h.show_wallet, pattern="^user_wallet$")],
+        per_message=False
+    ))
+
+    app.add_handler(ConversationHandler(
+        entry_points=[CallbackQueryHandler(user_h.handle_buy_balance, pattern="^buybal_")],
+        states={user_h.MANUAL_ORDER_INPUT: [MessageHandler(filters.TEXT & ~filters.COMMAND, user_h.handle_manual_order_input)]},
+        fallbacks=[CallbackQueryHandler(user_h.show_categories, pattern="^user_categories$")],
+        per_message=False
+    ))
+
+    app.add_handler(ConversationHandler(
+        entry_points=[CallbackQueryHandler(admin_h.start_add_category, pattern="^adm_add_cat_start$")],
+        states={
+            admin_h.ADD_CAT_NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, admin_h.handle_add_cat_name)],
+            admin_h.ADD_CAT_EMOJI: [MessageHandler(filters.TEXT & ~filters.COMMAND, admin_h.handle_add_cat_emoji)]
+        },
+        fallbacks=[CallbackQueryHandler(admin_h.admin_cat_menu, pattern="^adm_cat_menu$")],
+        per_message=False
+    ))
+
+    app.add_handler(ConversationHandler(
+        entry_points=[CallbackQueryHandler(admin_h.start_add_product, pattern="^adm_add_product$")],
+        states={
+            admin_h.ADD_PROD_CAT: [CallbackQueryHandler(admin_h.handle_prod_cat_choice, pattern="^selcat_")],
+            admin_h.ADD_PROD_NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, admin_h.handle_prod_name)],
+            admin_h.ADD_PROD_DESC: [MessageHandler(filters.TEXT & ~filters.COMMAND, admin_h.handle_prod_desc)],
+            admin_h.ADD_PROD_PRICE: [MessageHandler(filters.TEXT & ~filters.COMMAND, admin_h.handle_prod_price)],
+            admin_h.ADD_PROD_TYPE: [CallbackQueryHandler(admin_h.handle_prod_type, pattern="^prodtype_")],
+            admin_h.ADD_PROD_IMAGE: [
+                MessageHandler(filters.TEXT & ~filters.COMMAND, admin_h.handle_prod_image_input),
+                CallbackQueryHandler(admin_h.handle_skip_prod_img, pattern="^skip_prod_img$")
+            ]
+        },
+        fallbacks=[CallbackQueryHandler(admin_h.admin_panel, pattern="^admin_home$")],
+        per_message=False
+    ))
+
+    app.add_handler(ConversationHandler(
+        entry_points=[CallbackQueryHandler(admin_h.start_add_stock, pattern="^adm_add_stock_")],
+        states={admin_h.ADD_STOCK_ITEMS: [MessageHandler(filters.TEXT & ~filters.COMMAND, admin_h.handle_add_stock_items)]},
+        fallbacks=[CallbackQueryHandler(admin_h.admin_stock_menu, pattern="^adm_stock_menu$")],
+        per_message=False
+    ))
+
+    app.add_handler(ConversationHandler(
+        entry_points=[CallbackQueryHandler(admin_h.start_broadcast, pattern="^adm_broadcast_start$")],
+        states={admin_h.ADMIN_BROADCAST_MSG: [MessageHandler(filters.TEXT & ~filters.COMMAND, admin_h.handle_broadcast_message)]},
+        fallbacks=[CallbackQueryHandler(admin_h.admin_panel, pattern="^admin_home$")],
+        per_message=False
+    ))
+
+    app.add_handler(ConversationHandler(
+        entry_points=[CallbackQueryHandler(admin_h.prompt_search_user, pattern="^adm_search_user_btn$")],
+        states={admin_h.ADMIN_USER_SEARCH: [MessageHandler(filters.TEXT & ~filters.COMMAND, admin_h.handle_user_search_input)]},
+        fallbacks=[CallbackQueryHandler(admin_h.admin_users_menu, pattern="^adm_users_menu$")],
+        per_message=False
+    ))
+
+    app.add_handler(ConversationHandler(
+        entry_points=[CallbackQueryHandler(admin_h.start_edit_setting, pattern="^editset_")],
+        states={admin_h.SETTING_EDIT_KEY: [MessageHandler(filters.TEXT & ~filters.COMMAND, admin_h.handle_edit_setting_val)]},
+        fallbacks=[CallbackQueryHandler(admin_h.admin_settings_menu, pattern="^adm_settings$")],
+        per_message=False
+    ))
+
+    # General Callback Queries
+    app.add_handler(CallbackQueryHandler(user_h.start_command, pattern="^user_menu$"))
+    app.add_handler(CallbackQueryHandler(user_h.show_categories, pattern="^user_categories$"))
+    app.add_handler(CallbackQueryHandler(user_h.show_category_products, pattern="^cat_"))
+    app.add_handler(CallbackQueryHandler(user_h.show_product_details, pattern="^prod_"))
+    app.add_handler(CallbackQueryHandler(user_h.handle_buy_balance, pattern="^buybal_"))
+    app.add_handler(CallbackQueryHandler(user_h.handle_direct_crypto_buy, pattern="^buycrypto_"))
+
+    app.add_handler(CallbackQueryHandler(user_h.show_wallet, pattern="^user_wallet$"))
+    app.add_handler(CallbackQueryHandler(user_h.show_deposit_options, pattern="^user_deposit$"))
+    app.add_handler(CallbackQueryHandler(user_h.handle_preset_deposit, pattern="^create_dep_"))
+    app.add_handler(CallbackQueryHandler(user_h.check_deposit_status, pattern="^chkdep_"))
+    app.add_handler(CallbackQueryHandler(user_h.show_deposit_qr, pattern="^qrdep_"))
+
+    app.add_handler(CallbackQueryHandler(user_h.show_orders, pattern="^user_orders$"))
+    app.add_handler(CallbackQueryHandler(user_h.show_profile, pattern="^user_profile$"))
+    app.add_handler(CallbackQueryHandler(user_h.show_support, pattern="^user_support$"))
+
+    # Admin Callback Queries
+    app.add_handler(CallbackQueryHandler(admin_h.admin_panel, pattern="^admin_home$"))
+    app.add_handler(CallbackQueryHandler(admin_h.admin_cat_menu, pattern="^adm_cat_menu$"))
+    app.add_handler(CallbackQueryHandler(admin_h.handle_del_category, pattern="^adm_del_cat_"))
+    app.add_handler(CallbackQueryHandler(admin_h.admin_list_products, pattern="^adm_list_products$"))
+    app.add_handler(CallbackQueryHandler(admin_h.admin_view_product_ops, pattern="^adm_manage_p_"))
+    app.add_handler(CallbackQueryHandler(admin_h.admin_delete_product, pattern="^adm_del_prod_"))
+    app.add_handler(CallbackQueryHandler(admin_h.admin_stock_menu, pattern="^adm_stock_menu$"))
+    app.add_handler(CallbackQueryHandler(admin_h.admin_users_menu, pattern="^adm_users_menu$"))
+    app.add_handler(CallbackQueryHandler(admin_h.admin_settings_menu, pattern="^adm_settings$"))
+
+    app.add_error_handler(error_handler)
+
+    if app.job_queue:
+        app.job_queue.run_repeating(auto_deposit_checker_job, interval=25, first=10)
+
+    logger.info("🤖 Starting Nexvora Shopee Bot...")
+    async with app:
+        await app.start()
+        await app.updater.start_polling(allowed_updates=Update.ALL_TYPES, drop_pending_updates=True)
+        # Keep running
+        while True:
+            await asyncio.sleep(3600)
+
+def main():
+    asyncio.run(async_main())
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: nexvora-telegram-bot
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: python bot.py
+    envVars:
+      - key: BOT_TOKEN
+        sync: false
+      - key: ADMIN_ID
+        sync: false
+      - key: BINANCE_API_BASE_URL
+        value: https://binance-api-yrz4.onrender.com
+      - key: BINANCE_API_KEY
+        value: bg_live_your_merchant_api_key
+      - key: CURRENCY_SYMBOL
+        value: "$"
+      - key: CURRENCY_NAME
+        value: USDT
+      - key: SUPPORT_USERNAME
+        value: "@Support"
+      - key: MIN_DEPOSIT
+        value: "1.0"
