@@ -462,26 +462,31 @@ async def prompt_custom_deposit(update: Update, context: ContextTypes.DEFAULT_TY
     text = (
         f"✏️ <b>Enter Custom Deposit Amount</b>\n\n"
         f"Please reply with the exact amount in USDT (minimum <code>{currency}{min_dep:.2f}</code>):\n"
-        f"<i>(Example: <code>15</code> or <code>35.50</code>)</i>"
-    )
-    keyboard = InlineKeyboardMarkup([[InlineKeyboardButton("❌ Cancel", callback_data="user_deposit")]])
-    await query.edit_message_text(text, reply_markup=keyboard, parse_mode=ParseMode.HTML)
-    return CUSTOM_DEPOSIT_AMOUNT
-
-async def process_custom_deposit_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
+        f"<i>(Example:async def process_custom_deposit_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     text = update.message.text.replace("$", "").strip()
+    min_dep = float(await database.get_setting("min_deposit", "1.0"))
+    currency = await database.get_setting("currency_symbol", "$")
 
     try:
         amount = float(text)
-        min_dep = float(await database.get_setting("min_deposit", "1.0"))
         if amount < min_dep:
-            await update.message.reply_text(f"⚠️ Minimum deposit amount is ${min_dep:.2f}. Please try again:")
+            await update.message.reply_text(
+                f"❌ <b>ভুল পরিমাণ দেওয়া হয়েছে!</b>\n\n"
+                f"⚠️ আপনি <code>{currency}{amount:.2f}</code> লিখেছেন। কিন্তু সর্বনিম্ন ডিপোজিট হলো <code>{currency}{min_dep:.2f}</code>।\n\n"
+                f"👉 অনুগ্রহ করে <code>{min_dep:.2f}</code> বা তার বেশি পরিমাণ লিখুন (যেমন: <code>10</code> বা <code>25.50</code>):",
+                parse_mode=ParseMode.HTML
+            )
             return CUSTOM_DEPOSIT_AMOUNT
         
         return await execute_create_deposit(update, context, amount=amount, user_id=user_id)
     except ValueError:
-        await update.message.reply_text("⚠️ Invalid number. Please enter a valid amount (e.g. 20):")
+        await update.message.reply_text(
+            f"❌ <b>ভুল ইনপুট দেওয়া হয়েছে!</b>\n\n"
+            f"⚠️ কোনো অক্ষর বা অপ্রাসঙ্গিক টেক্সট দেওয়া যাবে না।\n"
+            f"👉 অনুগ্রহ করে শুধুমাত্র সঠিক সংখ্যার পরিমাণটি লিখুন (যেমন: <code>10</code>, <code>20</code> বা <code>50</code>):",
+            parse_mode=ParseMode.HTML
+        )
         return CUSTOM_DEPOSIT_AMOUNT
 
 async def handle_preset_deposit(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -508,7 +513,11 @@ async def execute_create_deposit(update: Update, context: ContextTypes.DEFAULT_T
     )
 
     if not res.get("success"):
-        err_text = f"❌ <b>Payment Gateway Error</b>\n\n{escape(res.get('message', 'Unable to create payment invoice.'))}\n\nPlease contact support if this persists."
+        err_text = (
+            f"❌ <b>Payment Gateway Error</b>\n\n"
+            f"⚠️ {escape(res.get('message', 'Unable to create payment invoice.'))}\n\n"
+            f"💡 পেমেন্ট গেটওয়ে সার্ভারে কোনো সমস্যা হতে পারে। কিছুক্ষণ পর আবার চেষ্টা করুন বা সাপোর্টে যোগাযোগ করুন।"
+        )
         keyboard = InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Back to Wallet", callback_data="user_wallet")]])
         if is_callback:
             await update.callback_query.edit_message_text(err_text, reply_markup=keyboard, parse_mode=ParseMode.HTML)
@@ -525,20 +534,20 @@ async def execute_create_deposit(update: Update, context: ContextTypes.DEFAULT_T
     erc20 = crypto_wallets.get("erc20", "N/A")
 
     invoice_text = (
-        f"🪙 <b>Payment Invoice Generated</b>\n\n"
+        f"🪙 <b>পেমেন্ট ইনভয়েস তৈরি হয়েছে (Payment Invoice)</b>\n\n"
         f"🔖 <b>Invoice ID:</b> <code>{merchant_trade_no}</code>\n"
         f"💵 <b>Amount:</b> <code>{currency}{amount:.2f} USDT</code>\n"
-        f"⏳ <b>Status:</b> <code>Awaiting Payment (INITIAL)</code>\n\n"
+        f"⏳ <b>Status:</b> <code>পেমেন্টের অপেক্ষায় (INITIAL)</code>\n\n"
         f"━━━━━━━━━━━━━━━━━━━━\n"
-        f"⚡ <b>Method 1: Binance Pay (0% Gas, Instant)</b>\n"
-        f"Click the button below to pay directly inside Binance App or Browser.\n\n"
-        f"🌐 <b>Method 2: Multi-Chain Crypto Transfer</b>\n"
-        f"Send exact <code>{amount:.2f} USDT</code> to any address below:\n\n"
+        f"⚡ <b>পদ্ধতি ১: Binance Pay (0% Gas Fee, Instant)</b>\n"
+        f"নিচের বাটনে ক্লিক করে সরাসরি Binance App বা ব্রাউজারে পেমেন্ট সম্পন্ন করুন।\n\n"
+        f"🌐 <b>পদ্ধতি ২: Multi-Chain ক্রিপ্টো ট্রান্সফার</b>\n"
+        f"নিচের যেকোনো একটি এড্রেসে ঠিক <code>{amount:.2f} USDT</code> সেন্ড করুন:\n\n"
         f"🟡 <b>BEP20 (BNB Smart Chain):</b>\n<code>{bep20}</code>\n\n"
         f"🔴 <b>TRC20 (TRON Network):</b>\n<code>{trc20}</code>\n\n"
         f"🔵 <b>ERC20 (Ethereum):</b>\n<code>{erc20}</code>\n"
         f"━━━━━━━━━━━━━━━━━━━━\n"
-        f"💡 <i>After transferring, click 'Check Payment' or submit your TxHash for instant confirmation!</i>"
+        f"💡 <i>পেমেন্ট ট্রান্সফার করার পর '🔄 Check Payment Status' চাপুন অথবা আপনার TxHash সাবমিট করুন।</i>"
     )
 
     buttons = []
@@ -573,7 +582,7 @@ async def check_deposit_status(update: Update, context: ContextTypes.DEFAULT_TYP
     currency = await database.get_setting("currency_symbol", "$")
 
     if not status_res.get("success"):
-        await query.answer(f"⚠️ Status: {status_res.get('message', 'Failed to fetch status')}", show_alert=True)
+        await query.answer(f"⚠️ {status_res.get('message', 'পেমেন্ট চেক করা সম্ভব হয়নি')}", show_alert=True)
         return
 
     order_info = status_res.get("order", {})
@@ -590,11 +599,11 @@ async def check_deposit_status(update: Update, context: ContextTypes.DEFAULT_TYP
             await database.mark_deposit_paid(merchant_trade_no, paid_network=paid_net, tx_hash=tx_id)
 
             success_text = (
-                f"🎉 <b>Deposit Confirmed & Credited!</b>\n\n"
+                f"🎉 <b>ডিপোজিট সফলভাবে জমা হয়েছে! (Deposit Confirmed)</b>\n\n"
                 f"🔖 <b>Invoice ID:</b> <code>{merchant_trade_no}</code>\n"
-                f"💰 <b>Amount Credited:</b> <code>{currency}{amount:.2f} USDT</code>\n"
-                f"🌐 <b>Network:</b> <code>{paid_net}</code>\n\n"
-                f"✨ <i>Your new wallet balance is ready for shopping!</i>"
+                f"💰 <b>জমা হওয়া ব্যালেন্স:</b> <code>{currency}{amount:.2f} USDT</code>\n"
+                f"🌐 <b>নেটওয়ার্ক:</b> <code>{paid_net}</code>\n\n"
+                f"✨ <i>আপনার ওয়ালেটে ব্যালেন্স যুক্ত করা হয়েছে। আপনি এখন কেনাকাটা করতে পারেন!</i>"
             )
             keyboard = InlineKeyboardMarkup([
                 [InlineKeyboardButton("🛍 Browse Shop", callback_data="user_categories"), InlineKeyboardButton("💳 My Wallet", callback_data="user_wallet")]
@@ -602,12 +611,12 @@ async def check_deposit_status(update: Update, context: ContextTypes.DEFAULT_TYP
             await query.edit_message_text(success_text, reply_markup=keyboard, parse_mode=ParseMode.HTML)
             return
         else:
-            await query.answer("✅ This deposit is already verified and credited to your wallet!", show_alert=True)
+            await query.answer("✅ এই ডিপোজিটটি আগেই সফলভাবে ওয়ালেটে যুক্ত হয়েছে!", show_alert=True)
             return
     elif status == "INITIAL":
-        await query.answer("⏳ Payment not detected yet. If you just sent the transaction, please allow 1-2 minutes for blockchain confirmations.", show_alert=True)
+        await query.answer("⏳ পেমেন্ট এখনও ব্লকচেইনে কনফার্ম হয়নি। আপনি যদি সবেমাত্র সেন্ড করে থাকেন, তবে ১-২ মিনিট অপেক্ষা করে আবার চেক করুন।", show_alert=True)
     else:
-        await query.answer(f"ℹ️ Order status: {status}", show_alert=True)
+        await query.answer(f"ℹ️ ইনভয়েস স্ট্যাটাস: {status}", show_alert=True)
 
 async def show_deposit_qr(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
@@ -623,7 +632,7 @@ async def show_deposit_qr(update: Update, context: ContextTypes.DEFAULT_TYPE):
     qr_bio = generate_qr_image(target_qr_text)
 
     caption = (
-        f"📱 <b>Scan to Pay</b>\n\n"
+        f"📱 <b>স্ক্যান করে পেমেন্ট করুন (Scan to Pay)</b>\n\n"
         f"🔖 Invoice: <code>{merchant_trade_no}</code>\n"
         f"💰 Amount: <code>${db_dep['order_amount']:.2f} USDT</code>\n\n"
         f"🟡 <b>BEP20 Address:</b>\n<code>{db_dep['bep20_addr']}</code>\n\n"
@@ -648,8 +657,8 @@ async def start_submit_tx(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     text = (
         f"⚡ <b>Submit On-Chain TxHash Verification</b>\n\n"
-        f"Invoice: <code>{merchant_trade_no}</code>\n\n"
-        f"Select the blockchain network you transferred on:"
+        f"🔖 Invoice ID: <code>{merchant_trade_no}</code>\n\n"
+        f"👇 আপনি কোন ক্রিপ্টো নেটওয়ার্কের মাধ্যমে ডলার পাঠিয়েছেন তা সিলেক্ট করুন:"
     )
 
     keyboard = InlineKeyboardMarkup([
@@ -674,13 +683,32 @@ async def handle_submit_tx_network(update: Update, context: ContextTypes.DEFAULT
 
     text = (
         f"⚡ <b>Submit TxHash ({network})</b>\n\n"
-        f"Invoice: <code>{trade_no}</code>\n\n"
-        f"Please reply with your Transaction Hash / Hash ID (e.g. <code>0x78ab9c...</code> or <code>a1b2c3...</code>):"
+        f"🔖 Invoice: <code>{trade_no}</code>\n"
+        f"🌐 Network: <code>{network}</code>\n\n"
+        f"📌 <b>সঠিক TxHash দেওয়ার নিয়ম:</b>\n"
+        f"১. আপনার Binance App বা Crypto Wallet-এর <b>Transaction History / Withdrawal</b> এ যান।\n"
+        f"২. ট্রানজ্যাকশনটির <b>TxID / TxHash</b> কপি করুন (৬৪ বা ৬৬ অক্ষরের কোড)।\n"
+        f"৩. কপি করা কোডটি এখানে মেসেজ করুন।\n\n"
+        f"💡 <i>(যেমন: <code>0x78ab9c456...</code> বা <code>a1b2c3d4e5f6...</code>)</i>"
     )
 
     keyboard = InlineKeyboardMarkup([[InlineKeyboardButton("❌ Cancel", callback_data="user_wallet")]])
     await query.edit_message_text(text, reply_markup=keyboard, parse_mode=ParseMode.HTML)
     return SUBMIT_TX_HASH
+
+def is_valid_tx_hash_format(tx_hash: str) -> bool:
+    """Checks if a string looks like a genuine blockchain transaction hash."""
+    import re
+    cleaned = tx_hash.strip().lower()
+    # Check for obvious garbage like "test", "a1b2c3...", spaces, short lengths
+    if len(cleaned) < 32 or len(cleaned) > 70:
+        return False
+    if " " in cleaned or ".." in cleaned:
+        return False
+    # EVM hash (0x... 66 chars) or Raw hash (64 hex chars)
+    if re.fullmatch(r"^(0x)?[0-9a-fA-F]{32,66}$", cleaned):
+        return True
+    return False
 
 async def handle_submit_tx_hash(update: Update, context: ContextTypes.DEFAULT_TYPE):
     tx_hash = update.message.text.strip()
@@ -691,22 +719,51 @@ async def handle_submit_tx_hash(update: Update, context: ContextTypes.DEFAULT_TY
         await update.message.reply_text("Session expired. Please start again from /start.")
         return ConversationHandler.END
 
-    loading = await update.message.reply_text("⏳ <i>Submitting TxHash for gateway verification...</i>", parse_mode=ParseMode.HTML)
+    # 1. Validate TxHash Format
+    if not is_valid_tx_hash_format(tx_hash):
+        warn_text = (
+            f"❌ <b>ভুল বা নকল Transaction Hash (TxHash)!</b>\n\n"
+            f"⚠️ আপনি যে তথ্যটি দিয়েছেন: <code>{escape(tx_hash)}</code> — এটি কোনো সঠিক ব্লকচেইন ট্রানজ্যাকশন হ্যাশ নয়।\n\n"
+            f"📌 <b>সঠিক হ্যাশ কোথায় পাবেন:</b>\n"
+            f"• আপনার Binance App বা ট্রাস্ট ওয়ালেটের <b>Withdrawal History</b>-তে যান।\n"
+            f"• ডিপোজিট করা ট্রানজ্যাকশনটির উপর ক্লিক করে <b>TxID</b> কপি করে আনুন।\n\n"
+            f"👉 অনুগ্রহ করে সঠিক ৬৪/৬৬ অক্ষরের TxHash টি লিখে আবার রিপ্লাই দিন (অথবা Cancel করুন):"
+        )
+        await update.message.reply_text(warn_text, parse_mode=ParseMode.HTML)
+        return SUBMIT_TX_HASH
+
+    loading = await update.message.reply_text("⏳ <i>ব্লকচেইন গেটওয়েতে ভেরিফাই করা হচ্ছে...</i>", parse_mode=ParseMode.HTML)
 
     res = await payment_gateway.submit_tx_hash(merchant_trade_no=trade_no, network=network, tx_hash=tx_hash)
 
     if res.get("success"):
         text = (
-            f"✅ <b>TxHash Submitted Successfully!</b>\n\n"
+            f"✅ <b>TxHash সফলভাবে সাবমিট হয়েছে!</b>\n\n"
             f"🔖 <b>Invoice:</b> <code>{trade_no}</code>\n"
             f"🌐 <b>Network:</b> <code>{network}</code>\n"
             f"🔗 <b>TxHash:</b> <code>{escape(tx_hash)}</code>\n\n"
-            f"⏳ <i>The system is verifying your blockchain transaction. Your balance will be credited automatically within a few minutes.</i>"
+            f"⏳ <i>সিস্টেম আপনার ব্লকচেইন ট্রানজ্যাকশন কনফার্মেশন চেক করছে। ব্লক কনফার্ম হওয়া মাত্রই স্বয়ংক্রিয়ভাবে আপনার ওয়ালেটে ব্যালেন্স জমা হয়ে যাবে।</i>"
         )
     else:
+        err_raw = res.get("message", "Order not found")
         text = (
-            f"⚠️ <b>Notice:</b> {escape(res.get('message', 'Submitted, awaiting confirmation'))}\n\n"
-            f"Our system will continue checking for block confirmations."
+            f"⚠️ <b>ট্রানজ্যাকশন ভেরিফিকেশন করা যায়নি!</b>\n\n"
+            f"❌ <b>কারণ:</b> <i>{escape(err_raw)}</i>\n\n"
+            f"💡 <b>পরামর্শ:</b>\n"
+            f"১. আপনি যদি মাত্র ১-২ সেকেন্ড আগে ফান্ড পাঠিয়ে থাকেন, তবে ব্লকচেইনে ট্রানজ্যাকশন আসতে ১-২ মিনিট সময় লাগতে পারে।\n"
+            f"২. নিশ্চিত হন যে আপনি সঠিক নেটওয়ার্কে (<code>{network}</code>) সঠিক পরিমাণ পাঠিয়েছেন।\n"
+            f"৩. কিছুক্ষণ পর নিচে দেওয়া <b>'Check Payment Status'</b> বাটনে চাপুন।"
+        )
+
+    keyboard = InlineKeyboardMarkup([
+        [InlineKeyboardButton("🔄 Check Payment Status", callback_data=f"chkdep_{trade_no}")],
+        [InlineKeyboardButton("💳 My Wallet", callback_data="user_wallet")]
+    ])
+
+    await loading.edit_text(text, reply_markup=keyboard, parse_mode=ParseMode.HTML)
+    context.user_data.pop("submit_tx_merchant_trade_no", None)
+    context.user_data.pop("submit_tx_network", None)
+    return ConversationHandler.ENDOur system will continue checking for block confirmations."
         )
 
     keyboard = InlineKeyboardMarkup([
