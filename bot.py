@@ -137,24 +137,25 @@ async def health_check_handler(request):
 async def start_web_server():
     port = int(os.environ.get("PORT", 0))
     if port > 0:
-        app = web.Application()
-        app.router.add_get("/", health_check_handler)
-        app.router.add_get("/health", health_check_handler)
-        runner = web.AppRunner(app)
+        web_app = web.Application()
+        web_app.router.add_get("/", health_check_handler)
+        web_app.router.add_get("/health", health_check_handler)
+        runner = web.AppRunner(web_app)
         await runner.setup()
         site = web.TCPSite(runner, "0.0.0.0", port)
         await site.start()
         logger.info(f"Health check web server started on port {port}")
 
+async def post_init(application: Application):
+    await database.init_db()
+    await start_web_server()
+    if application.job_queue:
+        application.job_queue.run_repeating(auto_deposit_checker_job, interval=25, first=10)
+        logger.info("Auto-deposit background poller job scheduled.")
+
 # -------------------- MAIN APP SETUP --------------------
 
-async def async_main():
-    await database.init_db()
-
-    # Start health check server if on Render / Heroku
-    await start_web_server()
-
-    # Build HTTPXRequest with custom timeouts
+def main():
     request_kwargs = {
         "connection_pool_size": 16,
         "connect_timeout": 30.0,
@@ -166,7 +167,7 @@ async def async_main():
         request_kwargs["proxy"] = TELEGRAM_PROXY_URL
 
     request = HTTPXRequest(**request_kwargs)
-    builder = Application.builder().token(BOT_TOKEN).request(request)
+    builder = Application.builder().token(BOT_TOKEN).request(request).post_init(post_init)
     if TELEGRAM_BASE_URL:
         builder = builder.base_url(TELEGRAM_BASE_URL)
 
@@ -290,19 +291,8 @@ async def async_main():
 
     app.add_error_handler(error_handler)
 
-    if app.job_queue:
-        app.job_queue.run_repeating(auto_deposit_checker_job, interval=25, first=10)
-
     logger.info("🤖 Starting Nexvora Shopee Bot...")
-    async with app:
-        await app.start()
-        await app.updater.start_polling(allowed_updates=Update.ALL_TYPES, drop_pending_updates=True)
-        # Keep running
-        while True:
-            await asyncio.sleep(3600)
-
-def main():
-    asyncio.run(async_main())
+    app.run_polling(allowed_updates=Update.ALL_TYPES, drop_pending_updates=True)
 
 if __name__ == "__main__":
     main()
