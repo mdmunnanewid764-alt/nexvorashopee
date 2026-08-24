@@ -462,7 +462,13 @@ async def prompt_custom_deposit(update: Update, context: ContextTypes.DEFAULT_TY
     text = (
         f"✏️ <b>Enter Custom Deposit Amount</b>\n\n"
         f"Please reply with the exact amount in USDT (minimum <code>{currency}{min_dep:.2f}</code>):\n"
-        f"<i>(Example:async def process_custom_deposit_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
+        f"<i>(Example: <code>15</code> or <code>35.50</code>)</i>"
+    )
+    keyboard = InlineKeyboardMarkup([[InlineKeyboardButton("❌ Cancel", callback_data="user_deposit")]])
+    await query.edit_message_text(text, reply_markup=keyboard, parse_mode=ParseMode.HTML)
+    return CUSTOM_DEPOSIT_AMOUNT
+
+async def process_custom_deposit_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     text = update.message.text.replace("$", "").strip()
     min_dep = float(await database.get_setting("min_deposit", "1.0"))
@@ -757,17 +763,6 @@ async def handle_submit_tx_hash(update: Update, context: ContextTypes.DEFAULT_TY
 
     keyboard = InlineKeyboardMarkup([
         [InlineKeyboardButton("🔄 Check Payment Status", callback_data=f"chkdep_{trade_no}")],
-        [InlineKeyboardButton("💳 My Wallet", callback_data="user_wallet")]
-    ])
-
-    await loading.edit_text(text, reply_markup=keyboard, parse_mode=ParseMode.HTML)
-    context.user_data.pop("submit_tx_merchant_trade_no", None)
-    context.user_data.pop("submit_tx_network", None)
-    return ConversationHandler.ENDOur system will continue checking for block confirmations."
-        )
-
-    keyboard = InlineKeyboardMarkup([
-        [InlineKeyboardButton("🔄 Check Status", callback_data=f"chkdep_{trade_no}")],
         [InlineKeyboardButton("💳 My Wallet", callback_data="user_wallet")]
     ])
 
