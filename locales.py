@@ -26,6 +26,17 @@ STRINGS = {
         "btn_back_main": "🔙 Back to Main Menu",
         "btn_back": "🔙 Back",
         
+        # Promo Offer
+        "btn_chatgpt_promo": "🔥 ChatGPT 3-Month Promo ({symbol}{price:.2f})",
+        "chatgpt_promo_title": "🤖 <b>ChatGPT 3-Month Subscription Promo Offer</b>",
+        "chatgpt_promo_desc": "Get a special 3-Month ChatGPT Subscription activated directly on your personal Gmail / Email address.",
+        "chatgpt_promo_disabled": "⚠️ The ChatGPT 3-Month Promo offer is currently unavailable. Please check back later!",
+        "chatgpt_promo_ask_email": "🤖 <b>ChatGPT 3-Month Promo Offer Activation</b>\n\n💵 Price: <code>{symbol}{price:.2f}</code>\n\n📧 <b>Please reply with your Gmail / Email address:</b>\n<i>(We will activate the 3-month subscription on this email)</i>",
+        "chatgpt_promo_invalid_email": "❌ <b>Invalid Email Address!</b>\n\n⚠️ Please enter a valid Gmail / Email address (e.g. <code>example@gmail.com</code>):",
+        "chatgpt_promo_order_submitted": "✅ <b>ChatGPT Promo Order Submitted!</b>\n\n📦 <b>Offer:</b> <code>ChatGPT 3-Month Promo</code>\n🔖 <b>Order Code:</b> <code>{code}</code>\n📧 <b>Target Gmail/Email:</b> <code>{email}</code>\n💰 <b>Paid:</b> <code>{symbol}{price:.2f}</code>\n\n⏳ <i>Our admin team is processing your activation on your email. You will receive an instant notification once activated (or automatic refund if cancelled).</i>",
+        "chatgpt_promo_activated_user": "🎉 <b>ChatGPT 3-Month Subscription Activated!</b>\n\n🔖 <b>Order:</b> <code>{code}</code>\n📧 <b>Email:</b> <code>{email}</code>\n\n✨ <i>Your ChatGPT 3-Month subscription has been successfully activated by Admin! Enjoy your service.</i>",
+        "chatgpt_promo_refunded_user": "❌ <b>ChatGPT Promo Order Cancelled & Refunded</b>\n\n🔖 <b>Order:</b> <code>{code}</code>\n💰 <b>Refunded Amount:</b> <code>{symbol}{price:.2f}</code>\n\n💡 <i>The full amount has been refunded back to your wallet balance.</i>",
+
         # Shop / Catalog
         "catalog_title": "Store Catalog - Categories",
         "catalog_empty": "⚠️ No categories available at the moment. Please check back soon!",
@@ -105,6 +116,18 @@ STRINGS = {
         "btn_back_main": "🔙 মেইন মেনু",
         "btn_back": "🔙 পিছনে যান",
         
+        # Promo Offer
+        "btn_chatgpt_promo": "🔥 ChatGPT ৩-মাসের অফার ({symbol}{price:.2f})",
+        "chatgpt_promo_title": "🤖 <b>ChatGPT ৩-মাসের স্পেশাল প্রোমো অফার</b>",
+        "chatgpt_promo_desc": "আপনার ব্যক্তিগত জিমেইল / ইমেইলে সরাসরি ChatGPT ৩ মাসের প্রিমিয়াম সাবস্ক্রিপশন একটিভ করে নিন।",
+        "chatgpt_promo_disabled": "⚠️ ChatGPT ৩-মাসের প্রোমো অফারটি বর্তমানে বন্ধ রয়েছে। অনুগ্রহ করে পরে চেক করুন!",
+        "chatgpt_promo_ask_email": "🤖 <b>ChatGPT ৩-মাসের প্রোমো এক্টিভেশন</b>\n\n💵 অফার মূল্য: <code>{symbol}{price:.2f}</code>\n\n📧 <b>আপনার Gmail / Email এড্রেসটি লিখে পাঠান:</b>\n<i>(এই ইমেইলে আপনার ৩ মাসের সাবস্ক্রিপশন এক্টিভ করা হবে)</i>",
+        "chatgpt_promo_invalid_email": "❌ <b>ভুল ইমেইল এড্রেস!</b>\n\n⚠️ অনুগ্রহ করে একটি সঠিক Gmail / Email এড্রেস লিখুন (যেমন: <code>example@gmail.com</code>):",
+        "chatgpt_promo_order_submitted": "✅ <b>ChatGPT প্রোমো অর্ডার সফলভাবে জমা হয়েছে!</b>\n\n📦 <b>অফার:</b> <code>ChatGPT 3-Month Promo</code>\n🔖 <b>অর্ডার কোড:</b> <code>{code}</code>\n📧 <b>ইমেইল এড্রেস:</b> <code>{email}</code>\n💰 <b>পরিশোধিত মূল্য:</b> <code>{symbol}{price:.2f}</code>\n\n⏳ <i>এডমিন টিম আপনার ইমেইলে সাবস্ক্রিপশন একটিভ করছে। এক্টিভ হলে নোটিফিকেশন পাবেন (বা কোনো কারণে বাতিল হলে স্বয়ংক্রিয় রিফান্ড পেয়ে যাবেন)।</i>",
+        "chatgpt_promo_activated_user": "🎉 <b>ChatGPT ৩-মাসের সাবস্ক্রিপশন একটিভ হয়েছে!</b>\n\n🔖 <b>অর্ডার কোড:</b> <code>{code}</code>\n📧 <b>ইমেইল:</b> <code>{email}</code>\n\n✨ <i>এডমিন আপনার ইমেইলে ChatGPT ৩ মাসের প্রোমো সফলভাবে একটিভ করে দিয়েছে!</i>",
+        "chatgpt_promo_refunded_user": "❌ <b>ChatGPT প্রোমো অর্ডার বাতিল ও রিফান্ড করা হয়েছে</b>\n\n🔖 <b>অর্ডার কোড:</b> <code>{code}</code>\n💰 <b>রিফান্ডকৃত টাকা:</b> <code>{symbol}{price:.2f}</code>\n\n💡 <i>সম্পূর্ণ টাকা আপনার ওয়ালেট ব্যালেন্সে ফেরত দেওয়া হয়েছে।</i>",
+
+        # Shop / Catalog
         "catalog_title": "স্টোর ক্যাটালগ - ক্যাটাগরি",
         "catalog_empty": "⚠️ এই মুহূর্তে কোনো ক্যাটাগরি উপলব্ধ নেই। অনুগ্রহ করে কিছুক্ষণ পর আবার চেক করুন!",
         "select_cat": "প্রোডাক্ট দেখতে ক্যাটাগরি সিলেক্ট করুন:",
@@ -179,6 +202,18 @@ STRINGS = {
         "btn_back_main": "🔙 مین مینو پر واپس جائیں",
         "btn_back": "🔙 واپس",
         
+        # Promo Offer
+        "btn_chatgpt_promo": "🔥 چیٹ جی پی ٹی 3 ماہ کی آفر ({symbol}{price:.2f})",
+        "chatgpt_promo_title": "🤖 <b>ChatGPT 3-Month پرومو آفر</b>",
+        "chatgpt_promo_desc": "اپنے ذاتی جی میل / ای میل ایڈریس پر براہ راست ChatGPT 3 ماہ کی سبسکرپشن فعال کروائیں۔",
+        "chatgpt_promo_disabled": "⚠️ ChatGPT 3-Month پرومو آفر فی الحال ایڈمن کی طرف سے بند ہے۔",
+        "chatgpt_promo_ask_email": "🤖 <b>ChatGPT 3-Month پرومو ایکٹیویشن</b>\n\n💵 قیمت: <code>{symbol}{price:.2f}</code>\n\n📧 <b>براہ کرم اپنا Gmail / Email ایڈریس بھیجیں:</b>\n<i>(ہم اس ای میل پر 3 ماہ کی سبسکرپشن فعال کریں گے)</i>",
+        "chatgpt_promo_invalid_email": "❌ <b>غلط ای میل ایڈریس!</b>\n\n⚠️ براہ کرم درست ای میل درج کریں (مثال: <code>example@gmail.com</code>):",
+        "chatgpt_promo_order_submitted": "✅ <b>ChatGPT پرومو آرڈر جمع ہو گیا!</b>\n\n📦 <b>آفر:</b> <code>ChatGPT 3-Month Promo</code>\n🔖 <b>آرڈر کوڈ:</b> <code>{code}</code>\n📧 <b>ای میل:</b> <code>{email}</code>\n💰 <b>ادا شدہ رقم:</b> <code>{symbol}{price:.2f}</code>\n\n⏳ <i>ایڈمن آپ کے ای میل پر کارروائی کر رہا ہے۔ ایکٹیویشن پر آپ کو مطلع کر دیا جائے گا (منسوخ ہونے پر فوری ریفنڈ)۔</i>",
+        "chatgpt_promo_activated_user": "🎉 <b>ChatGPT 3-Month سبسکرپشن فعال ہو گئی!</b>\n\n🔖 <b>آرڈر:</b> <code>{code}</code>\n📧 <b>ای میل:</b> <code>{email}</code>\n\n✨ <i>ایڈمن نے آپ کے ای میل پر ChatGPT 3 ماہ کا پرومو کامیابی سے فعال کر دیا ہے۔</i>",
+        "chatgpt_promo_refunded_user": "❌ <b>ChatGPT آرڈر منسوخ اور رقم واپس!</b>\n\n🔖 <b>آرڈر:</b> <code>{code}</code>\n💰 <b>واپس کردہ رقم:</b> <code>{symbol}{price:.2f}</code>\n\n💡 <i>پوری رقم آپ کے والٹ بیلنس میں واپس جمع کر دی گئی ہے۔</i>",
+
+        # Shop / Catalog
         "catalog_title": "اسٹور کیٹلاگ - کیٹیگریز",
         "catalog_empty": "⚠️ فی الحال کوئی کیٹیگری دستیاب نہیں ہے۔ براہ کرم جلد دوبارہ چیک کریں!",
         "select_cat": "پروڈکٹس دیکھنے کے لیے کیٹیگری منتخب کریں:",
@@ -253,6 +288,18 @@ STRINGS = {
         "btn_back_main": "🔙 بازگشت به منوی اصلی",
         "btn_back": "🔙 بازگشت",
         
+        # Promo Offer
+        "btn_chatgpt_promo": "🔥 آفر ۳ ماهه چت‌جی‌پی‌تی ({symbol}{price:.2f})",
+        "chatgpt_promo_title": "🤖 <b>آفر ویژه ۳ ماهه ChatGPT</b>",
+        "chatgpt_promo_desc": "اشتراک ۳ ماهه چت‌جی‌پی‌تی را مستقیماً روی جیمیل / ایمیل شخصی خود فعال کنید.",
+        "chatgpt_promo_disabled": "⚠️ آفر ۳ ماهه ChatGPT در حال حاضر غیرفعال می‌باشد.",
+        "chatgpt_promo_ask_email": "🤖 <b>فعال‌سازی آفر ۳ ماهه ChatGPT</b>\n\n💵 قیمت: <code>{symbol}{price:.2f}</code>\n\n📧 <b>لطفاً آدرس Gmail / Email خود را ارسال فرمایید:</b>\n<i>(اشتراک ۳ ماهه روی این ایمیل فعال خواهد شد)</i>",
+        "chatgpt_promo_invalid_email": "❌ <b>ایمیل نامعتبر است!</b>\n\n⚠️ لطفاً یک ایمیل صحیح وارد فرمایید (مثال: <code>example@gmail.com</code>):",
+        "chatgpt_promo_order_submitted": "✅ <b>سفارش آفر ChatGPT ثبت شد!</b>\n\n📦 <b>آفر:</b> <code>ChatGPT 3-Month Promo</code>\n🔖 <b>کد سفارش:</b> <code>{code}</code>\n📧 <b>ایمیل ارسالی:</b> <code>{email}</code>\n💰 <b>مبلغ پرداختی:</b> <code>{symbol}{price:.2f}</code>\n\n⏳ <i>تیم مدیریت در حال فعال‌سازی اشتراک روی ایمیل شما است. پس از انجام یا لغو پیام دریافت خواهید کرد.</i>",
+        "chatgpt_promo_activated_user": "🎉 <b>اشتراک ۳ ماهه ChatGPT فعال شد!</b>\n\n🔖 <b>کد سفارش:</b> <code>{code}</code>\n📧 <b>ایمیل:</b> <code>{email}</code>\n\n✨ <i>اشتراک ۳ ماهه چت‌جی‌پی‌تی توسط ادمین با موفقیت فعال شد. لذت ببرید!</i>",
+        "chatgpt_promo_refunded_user": "❌ <b>سفارش ChatGPT لغو و مبلغ بازگردانده شد</b>\n\n🔖 <b>کد سفارش:</b> <code>{code}</code>\n💰 <b>مبلغ عودت داده شده:</b> <code>{symbol}{price:.2f}</code>\n\n💡 <i>مبلغ به موجودی کیف پول شما بازگشت داده شد.</i>",
+
+        # Shop / Catalog
         "catalog_title": "کاتالوگ فروشگاه - دسته‌بندی‌ها",
         "catalog_empty": "⚠️ در حال حاضر دسته‌بندی فعالی وجود ندارد. لطفاً بعداً بررسی فرمایید!",
         "select_cat": "برای مشاهده محصولات، دسته‌بندی را انتخاب کنید:",
@@ -327,6 +374,18 @@ STRINGS = {
         "btn_back_main": "🔙 العودة للقائمة الرئيسية",
         "btn_back": "🔙 رجوع",
         
+        # Promo Offer
+        "btn_chatgpt_promo": "🔥 عرض ChatGPT لـ 3 أشهر ({symbol}{price:.2f})",
+        "chatgpt_promo_title": "🤖 <b>عرض اشتراك ChatGPT لمدة 3 أشهر</b>",
+        "chatgpt_promo_desc": "احصل على اشتراك ChatGPT لمدة 3 أشهر يتم تفعيله مباشرة على بريدك الإلكتروني الشخصي (Gmail).",
+        "chatgpt_promo_disabled": "⚠️ عرض ChatGPT لمدة 3 أشهر غير متوفر حالياً. يرجى التحقق لاحقاً!",
+        "chatgpt_promo_ask_email": "🤖 <b>تفعيل عرض ChatGPT لمدة 3 أشهر</b>\n\n💵 السعر: <code>{symbol}{price:.2f}</code>\n\n📧 <b>يرجى إرسال بريدك الإلكتروني (Gmail / Email):</b>\n<i>(سيتم تفعيل الاشتراك لمدة 3 أشهر على هذا البريد)</i>",
+        "chatgpt_promo_invalid_email": "❌ <b>بريد إلكتروني غير صالح!</b>\n\n⚠️ يرجى إدخال بريد إلكتروني صحيح (مثال: <code>example@gmail.com</code>):",
+        "chatgpt_promo_order_submitted": "✅ <b>تم إرسال طلب عرض ChatGPT بنجاح!</b>\n\n📦 <b>العرض:</b> <code>ChatGPT 3-Month Promo</code>\n🔖 <b>رقم الطلب:</b> <code>{code}</code>\n📧 <b>البريد:</b> <code>{email}</code>\n💰 <b>المبلغ المدفوع:</b> <code>{symbol}{price:.2f}</code>\n\n⏳ <i>فريق الإدارة يقوم بتفعيل الاشتراك على بريدك الإلكتروني. ستصلك رسالة فور التفعيل (أو استرجاع المبلغ تلقائياً في حال الإلغاء).</i>",
+        "chatgpt_promo_activated_user": "🎉 <b>تم تفعيل اشتراك ChatGPT لمدة 3 أشهر!</b>\n\n🔖 <b>رقم الطلب:</b> <code>{code}</code>\n📧 <b>البريد:</b> <code>{email}</code>\n\n✨ <i>تم تفعيل اشتراكك بنجاح من قبل المسؤول. استمتع بالخدمة!</i>",
+        "chatgpt_promo_refunded_user": "❌ <b>تم إلغاء طلب ChatGPT واسترجاع المبلغ</b>\n\n🔖 <b>رقم الطلب:</b> <code>{code}</code>\n💰 <b>المبلغ المسترجع:</b> <code>{symbol}{price:.2f}</code>\n\n💡 <i>تمت إعادة كامل المبلغ إلى رصيد محفظتك.</i>",
+
+        # Shop / Catalog
         "catalog_title": "كتالوج المتجر - الأقسام",
         "catalog_empty": "⚠️ لا توجد أقسام متاحة حالياً. يرجى التحقق لاحقاً!",
         "select_cat": "اختر قسماً لتصفح المنتجات:",

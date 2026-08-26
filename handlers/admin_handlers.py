@@ -6,6 +6,7 @@ from telegram.ext import ContextTypes, ConversationHandler
 from telegram.constants import ParseMode
 import database
 from config import ADMIN_ID
+from locales import t, LANGUAGES
 
 logger = logging.getLogger(__name__)
 
@@ -17,8 +18,9 @@ logger = logging.getLogger(__name__)
     EDIT_PROD_PRICE, EDIT_PROD_DESC,
     ADMIN_USER_SEARCH, ADMIN_USER_BALANCE_ADJ,
     ADMIN_BROADCAST_MSG,
-    SETTING_EDIT_KEY
-) = range(16)
+    SETTING_EDIT_KEY,
+    EDIT_PROMO_PRICE
+) = range(17)
 
 def escape(text: str) -> str:
     return html.escape(str(text) if text is not None else "")
@@ -42,6 +44,9 @@ async def admin_panel(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     stats = await database.get_bot_stats()
     currency = await database.get_setting("currency_symbol", "$")
+    promo_price = await database.get_setting("chatgpt_promo_price", "1.00")
+    promo_enabled = await database.get_setting("chatgpt_promo_enabled", "1")
+    promo_status_icon = "🟢 Active" if promo_enabled == "1" else "🔴 Disabled"
 
     text = (
         f"🛠 <b>Nexvora Admin Control Panel</b>\n"
@@ -51,6 +56,7 @@ async def admin_panel(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"🔑 <b>Total Available Stock:</b> <code>{stats['total_stock']}</code> items\n"
         f"📦 <b>Total Orders:</b> <code>{stats['total_orders']}</code> (<code>{currency}{stats['total_sales']:.2f}</code>)\n"
         f"📥 <b>Total Paid Deposits:</b> <code>{stats['total_deposits']}</code> (<code>{currency}{stats['total_deposited_amount']:.2f}</code>)\n"
+        f"🔥 <b>ChatGPT 3M Promo:</b> {promo_status_icon} (<code>{currency}{promo_price}</code>)\n"
         f"━━━━━━━━━━━━━━━━━━━━\n"
         f"👇 <i>Select an administrative action:</i>"
     )
@@ -61,15 +67,18 @@ async def admin_panel(update: Update, context: ContextTypes.DEFAULT_TYPE):
             InlineKeyboardButton("📦 Manage Products", callback_data="adm_list_products")
         ],
         [
-            InlineKeyboardButton("🔑 Add / Manage Stock", callback_data="adm_stock_menu"),
-            InlineKeyboardButton("📂 Manage Categories", callback_data="adm_cat_menu")
+            InlineKeyboardButton("🔥 ChatGPT Promo Settings", callback_data="adm_promo_menu"),
+            InlineKeyboardButton("🔑 Add / Manage Stock", callback_data="adm_stock_menu")
         ],
         [
-            InlineKeyboardButton("👥 Manage Users", callback_data="adm_users_menu"),
-            InlineKeyboardButton("📢 Broadcast Message", callback_data="adm_broadcast_start")
+            InlineKeyboardButton("📂 Manage Categories", callback_data="adm_cat_menu"),
+            InlineKeyboardButton("👥 Manage Users", callback_data="adm_users_menu")
         ],
         [
-            InlineKeyboardButton("⚙️ Bot & API Settings", callback_data="adm_settings"),
+            InlineKeyboardButton("📢 Broadcast Message", callback_data="adm_broadcast_start"),
+            InlineKeyboardButton("⚙️ Bot & API Settings", callback_data="adm_settings")
+        ],
+        [
             InlineKeyboardButton("🔙 User Store View", callback_data="user_menu")
         ]
     ])
@@ -79,6 +88,209 @@ async def admin_panel(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.callback_query.edit_message_text(text, reply_markup=keyboard, parse_mode=ParseMode.HTML)
     else:
         await update.message.reply_text(text, reply_markup=keyboard, parse_mode=ParseMode.HTML)
+
+# -------------------- CHATGPT PROMO OFFER MANAGEMENT --------------------
+
+async def admin_promo_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+
+    currency = await database.get_setting("currency_symbol", "$")
+    promo_enabled = await database.get_setting("chatgpt_promo_enabled", "1")
+    promo_price = await database.get_setting("chatgpt_promo_price", "1.00")
+    promo_title = await database.get_setting("chatgpt_promo_title", "ChatGPT 3-Month Promo Offer")
+
+    status_badge = "🟢 ENABLED (Visible to users)" if promo_enabled == "1" else "🔴 DISABLED (Hidden from users)"
+    toggle_btn_text = "🔴 Disable Promo" if promo_enabled == "1" else "🟢 Enable Promo"
+
+    text = (
+        f"🔥 <b>ChatGPT 3-Month Promo Offer Settings</b>\n"
+        f"━━━━━━━━━━━━━━━━━━━━\n"
+        f"🏷 <b>Title:</b> <code>{escape(promo_title)}</code>\n"
+        f"💵 <b>Current Price:</b> <code>{currency}{promo_price}</code>\n"
+        f"📊 <b>Status:</b> {status_badge}\n"
+        f"━━━━━━━━━━━━━━━━━━━━\n"
+        f"👇 Choose an action to edit this offer:"
+    )
+
+    keyboard = InlineKeyboardMarkup([
+        [InlineKeyboardButton(toggle_btn_text, callback_data="adm_toggle_promo")],
+        [InlineKeyboardButton("💵 Edit Promo Price", callback_data="adm_edit_promo_price_start")],
+        [InlineKeyboardButton("🔙 Back to Admin", callback_data="admin_home")]
+    ])
+
+    await query.edit_message_text(text, reply_markup=keyboard, parse_mode=ParseMode.HTML)
+
+async def admin_toggle_promo(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    current_enabled = await database.get_setting("chatgpt_promo_enabled", "1")
+    new_val = "0" if current_enabled == "1" else "1"
+    await database.set_setting("chatgpt_promo_enabled", new_val)
+    await query.answer("Status updated!")
+    await admin_promo_menu(update, context)
+
+async def start_edit_promo_price(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+
+    currency = await database.get_setting("currency_symbol", "$")
+    promo_price = await database.get_setting("chatgpt_promo_price", "1.00")
+
+    text = (
+        f"💵 <b>Edit ChatGPT Promo Price</b>\n\n"
+        f"Current price: <code>{currency}{promo_price}</code>\n\n"
+        f"Please reply with the new price in USDT (e.g. <code>1.00</code>, <code>1.50</code>, or <code>2.00</code>):"
+    )
+    keyboard = InlineKeyboardMarkup([[InlineKeyboardButton("❌ Cancel", callback_data="adm_promo_menu")]])
+    await query.edit_message_text(text, reply_markup=keyboard, parse_mode=ParseMode.HTML)
+    return EDIT_PROMO_PRICE
+
+async def handle_edit_promo_price_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    text = update.message.text.replace("$", "").strip()
+    try:
+        price = float(text)
+        if price <= 0:
+            await update.message.reply_text("⚠️ Price must be greater than 0. Please enter a valid number (e.g. 1.00):")
+            return EDIT_PROMO_PRICE
+        
+        await database.set_setting("chatgpt_promo_price", f"{price:.2f}")
+        currency = await database.get_setting("currency_symbol", "$")
+        await update.message.reply_text(
+            f"✅ ChatGPT Promo Price updated to: <code>{currency}{price:.2f}</code>",
+            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔥 Promo Settings Menu", callback_data="adm_promo_menu")]])
+        )
+        return ConversationHandler.END
+    except ValueError:
+        await update.message.reply_text("⚠️ Invalid price format. Please enter numbers only (e.g. 1.00):")
+        return EDIT_PROMO_PRICE
+
+# -------------------- PROMO ORDER CONFIRM & REFUND ACTIONS --------------------
+
+async def handle_adm_promo_confirm(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    if not is_admin(query.from_user.id):
+        await query.answer("⛔ Unauthorized.", show_alert=True)
+        return
+
+    order_code = query.data.replace("adm_promo_confirm_", "")
+    order = await database.get_order_by_code(order_code)
+
+    if not order:
+        await query.answer("⚠️ Order not found.", show_alert=True)
+        return
+
+    if order["status"] == "COMPLETED":
+        await query.answer("✅ This order is already confirmed & completed!", show_alert=True)
+        return
+
+    if order["status"] == "CANCELLED_REFUNDED":
+        await query.answer("❌ This order was already cancelled and refunded.", show_alert=True)
+        return
+
+    # Mark as completed
+    await database.update_order_status(order_code, "COMPLETED")
+    await query.answer("✅ Order confirmed & completed!", show_alert=True)
+
+    # Update admin message
+    currency = await database.get_setting("currency_symbol", "$")
+    updated_admin_text = (
+        f"✅ <b>ChatGPT Promo Order Completed & Activated!</b>\n"
+        f"━━━━━━━━━━━━━━━━━━━━\n"
+        f"🔖 <b>Order Code:</b> <code>{order_code}</code>\n"
+        f"👤 <b>Buyer ID:</b> <code>{order['user_id']}</code>\n"
+        f"📧 <b>Email:</b> <code>{escape(order['delivery_data'])}</code>\n"
+        f"💰 <b>Amount:</b> <code>{currency}{order['total_price']:.2f}</code>\n"
+        f"📊 <b>Status:</b> <code>COMPLETED (ACTIVATED)</code>"
+    )
+    try:
+        await query.edit_message_text(updated_admin_text, parse_mode=ParseMode.HTML)
+    except Exception:
+        pass
+
+    # Notify User in their language
+    try:
+        user_lang = await database.get_user_language(order["user_id"])
+        user_msg = t(
+            "chatgpt_promo_activated_user", user_lang,
+            code=order_code,
+            email=escape(order['delivery_data'])
+        )
+        user_keyboard = InlineKeyboardMarkup([
+            [InlineKeyboardButton(t("btn_orders", user_lang), callback_data="user_orders"), InlineKeyboardButton(t("btn_back_main", user_lang), callback_data="user_menu")]
+        ])
+        await context.bot.send_message(
+            chat_id=order["user_id"],
+            text=user_msg,
+            reply_markup=user_keyboard,
+            parse_mode=ParseMode.HTML
+        )
+    except Exception as e:
+        logger.warning(f"Failed to notify user of activation: {e}")
+
+async def handle_adm_promo_refund(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    if not is_admin(query.from_user.id):
+        await query.answer("⛔ Unauthorized.", show_alert=True)
+        return
+
+    order_code = query.data.replace("adm_promo_refund_", "")
+    order = await database.get_order_by_code(order_code)
+
+    if not order:
+        await query.answer("⚠️ Order not found.", show_alert=True)
+        return
+
+    if order["status"] == "CANCELLED_REFUNDED":
+        await query.answer("❌ This order is already refunded!", show_alert=True)
+        return
+
+    if order["status"] == "COMPLETED":
+        await query.answer("⚠️ This order was already marked completed.", show_alert=True)
+        return
+
+    # Refund the user balance
+    refund_amount = float(order["total_price"])
+    await database.update_user_balance(order["user_id"], refund_amount, is_deposit=True)
+    await database.update_order_status(order_code, "CANCELLED_REFUNDED")
+
+    await query.answer(f"❌ Order cancelled & ${refund_amount:.2f} refunded to user!", show_alert=True)
+
+    # Update admin message
+    currency = await database.get_setting("currency_symbol", "$")
+    updated_admin_text = (
+        f"❌ <b>ChatGPT Promo Order Cancelled & Refunded!</b>\n"
+        f"━━━━━━━━━━━━━━━━━━━━\n"
+        f"🔖 <b>Order Code:</b> <code>{order_code}</code>\n"
+        f"👤 <b>Buyer ID:</b> <code>{order['user_id']}</code>\n"
+        f"📧 <b>Target Email:</b> <code>{escape(order['delivery_data'])}</code>\n"
+        f"💰 <b>Refunded Amount:</b> <code>{currency}{refund_amount:.2f}</code> (Credited back to wallet)\n"
+        f"📊 <b>Status:</b> <code>CANCELLED_REFUNDED</code>"
+    )
+    try:
+        await query.edit_message_text(updated_admin_text, parse_mode=ParseMode.HTML)
+    except Exception:
+        pass
+
+    # Notify User in their language
+    try:
+        user_lang = await database.get_user_language(order["user_id"])
+        user_msg = t(
+            "chatgpt_promo_refunded_user", user_lang,
+            code=order_code,
+            symbol=currency,
+            price=refund_amount
+        )
+        user_keyboard = InlineKeyboardMarkup([
+            [InlineKeyboardButton(t("btn_wallet", user_lang), callback_data="user_wallet"), InlineKeyboardButton(t("btn_back_main", user_lang), callback_data="user_menu")]
+        ])
+        await context.bot.send_message(
+            chat_id=order["user_id"],
+            text=user_msg,
+            reply_markup=user_keyboard,
+            parse_mode=ParseMode.HTML
+        )
+    except Exception as e:
+        logger.warning(f"Failed to notify user of refund: {e}")
 
 # -------------------- CATEGORY MANAGEMENT --------------------
 
@@ -104,8 +316,9 @@ async def admin_cat_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def start_add_category(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
+
     await query.edit_message_text(
-        "📝 <b>Add Category (Step 1/2)</b>\n\nPlease enter the Category Name (e.g. <code>VPN Accounts</code>, <code>Gift Cards</code>, <code>Software</code>):",
+        "📂 <b>Add New Category</b>\n\nPlease enter the Category Name (e.g. <i>VPN Accounts</i>):",
         reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("❌ Cancel", callback_data="adm_cat_menu")]]),
         parse_mode=ParseMode.HTML
     )
@@ -114,36 +327,113 @@ async def start_add_category(update: Update, context: ContextTypes.DEFAULT_TYPE)
 async def handle_add_cat_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["new_cat_name"] = update.message.text.strip()
     await update.message.reply_text(
-        "🎨 <b>Add Category (Step 2/2)</b>\n\nPlease enter an emoji for this category (e.g. 🔒, 🎁, 💻) or send <code>-</code> for default:",
-        reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("❌ Cancel", callback_data="adm_cat_menu")]]),
+        f"Great! Category Name: <b>{escape(context.user_data['new_cat_name'])}</b>\n\n"
+        "Now reply with an Emoji for this category (e.g. 🛡️ or 🎮):",
         parse_mode=ParseMode.HTML
     )
     return ADD_CAT_EMOJI
 
 async def handle_add_cat_emoji(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    emoji_input = update.message.text.strip()
-    emoji = "📁" if emoji_input == "-" else emoji_input
-    name = context.user_data.get("new_cat_name", "General")
+    emoji = update.message.text.strip()
+    name = context.user_data.get("new_cat_name")
 
-    cat_id = await database.add_category(name, emoji)
-    context.user_data.pop("new_cat_name", None)
-
+    cat_id = await database.add_category(name=name, emoji=emoji)
     await update.message.reply_text(
-        f"✅ Category <b>{emoji} {escape(name)}</b> created successfully (ID: <code>{cat_id}</code>)!",
-        reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("📂 Category Menu", callback_data="adm_cat_menu")]])
+        f"✅ Category <b>{emoji} {escape(name)}</b> created successfully! (ID: <code>{cat_id}</code>)",
+        reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("📂 Category Menu", callback_data="adm_cat_menu")]]),
+        parse_mode=ParseMode.HTML
     )
+    context.user_data.pop("new_cat_name", None)
     return ConversationHandler.END
 
 async def handle_del_category(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     cat_id = int(query.data.split("_")[3])
+    await database.delete_category(cat_id)
+    await query.answer("Category deleted!", show_alert=True)
+    await admin_cat_menu(update, context)
+
+# -------------------- PRODUCT MANAGEMENT --------------------
+
+async def admin_list_products(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
     await query.answer()
 
-    await database.delete_category(cat_id)
-    await query.edit_message_text("✅ Category deleted.", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Back", callback_data="adm_cat_menu")]]))
+    products = await database.get_all_products(include_inactive=True)
+    currency = await database.get_setting("currency_symbol", "$")
 
-# -------------------- PRODUCT CREATION WIZARD --------------------
+    text = "📦 <b>Product Management</b>\n\nAll existing products:\n"
+    buttons = []
 
+    for p in products:
+        status_icon = "🟢" if p["is_active"] else "🔴"
+        stock = await database.get_available_stock_count(p["id"]) if p["delivery_type"] == "digital" else "Service"
+        text += f"{status_icon} <b>{escape(p['name'])}</b> | <code>{currency}{p['price']:.2f}</code> | Stock: <code>{stock}</code>\n"
+        buttons.append([
+            InlineKeyboardButton(f"⚙️ {p['name']} ({currency}{p['price']:.2f})", callback_data=f"adm_manage_prod_{p['id']}")
+        ])
+
+    buttons.append([InlineKeyboardButton("➕ Add New Product", callback_data="adm_add_product")])
+    buttons.append([InlineKeyboardButton("🔙 Back to Admin", callback_data="admin_home")])
+
+    await query.edit_message_text(text, reply_markup=InlineKeyboardMarkup(buttons), parse_mode=ParseMode.HTML)
+
+async def admin_manage_single_product(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    product_id = int(query.data.split("_")[3])
+    await query.answer()
+
+    product = await database.get_product(product_id)
+    if not product:
+        await query.edit_message_text("Product not found.", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Back", callback_data="adm_list_products")]]))
+        return
+
+    currency = await database.get_setting("currency_symbol", "$")
+    stock = await database.get_available_stock_count(product["id"]) if product["delivery_type"] == "digital" else "Manual Service"
+    status_str = "🟢 Active (Visible)" if product["is_active"] else "🔴 Inactive (Hidden)"
+
+    text = (
+        f"⚙️ <b>Manage Product: {escape(product['name'])}</b>\n\n"
+        f"📁 <b>Category:</b> {escape(product.get('category_name', 'None'))}\n"
+        f"💵 <b>Price:</b> <code>{currency}{product['price']:.2f}</code>\n"
+        f"📦 <b>Delivery Type:</b> <code>{product['delivery_type']}</code>\n"
+        f"🔑 <b>Stock:</b> <code>{stock}</code>\n"
+        f"📊 <b>Status:</b> {status_str}\n\n"
+        f"📝 <b>Description:</b>\n{escape(product.get('description') or 'N/A')}"
+    )
+
+    toggle_status_text = "🔴 Deactivate" if product["is_active"] else "🟢 Activate"
+    keyboard = InlineKeyboardMarkup([
+        [
+            InlineKeyboardButton("➕ Add Stock", callback_data=f"adm_add_stock_{product['id']}"),
+            InlineKeyboardButton(toggle_status_text, callback_data=f"adm_toggle_prod_{product['id']}")
+        ],
+        [
+            InlineKeyboardButton("🗑 Delete Product", callback_data=f"adm_del_prod_{product['id']}"),
+            InlineKeyboardButton("🔙 Back to Products", callback_data="adm_list_products")
+        ]
+    ])
+
+    await query.edit_message_text(text, reply_markup=keyboard, parse_mode=ParseMode.HTML)
+
+async def handle_toggle_product(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    product_id = int(query.data.split("_")[3])
+    product = await database.get_product(product_id)
+    if product:
+        new_status = 0 if product["is_active"] else 1
+        await database.update_product(product_id, is_active=new_status)
+        await query.answer("Product status updated!")
+    await admin_manage_single_product(update, context)
+
+async def handle_delete_product(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    product_id = int(query.data.split("_")[3])
+    await database.delete_product(product_id)
+    await query.answer("Product deleted!", show_alert=True)
+    await admin_list_products(update, context)
+
+# Add Product Flow
 async def start_add_product(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
@@ -151,7 +441,7 @@ async def start_add_product(update: Update, context: ContextTypes.DEFAULT_TYPE):
     categories = await database.get_categories()
     if not categories:
         await query.edit_message_text(
-            "⚠️ Please create at least one category before adding products!",
+            "⚠️ Please create at least one Category before adding products.",
             reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("➕ Add Category", callback_data="adm_add_cat_start")]])
         )
         return ConversationHandler.END
@@ -162,7 +452,7 @@ async def start_add_product(update: Update, context: ContextTypes.DEFAULT_TYPE):
     buttons.append([InlineKeyboardButton("❌ Cancel", callback_data="admin_home")])
 
     await query.edit_message_text(
-        "📦 <b>Add Product (Step 1/6)</b>\n\nSelect category for this product:",
+        "🛍 <b>Add New Product: Step 1/6</b>\n\nSelect the Category for this product:",
         reply_markup=InlineKeyboardMarkup(buttons),
         parse_mode=ParseMode.HTML
     )
@@ -173,29 +463,27 @@ async def handle_prod_cat_choice(update: Update, context: ContextTypes.DEFAULT_T
     cat_id = int(query.data.split("_")[1])
     await query.answer()
 
-    context.user_data["add_prod_cat_id"] = cat_id
+    context.user_data["new_prod_cat_id"] = cat_id
     await query.edit_message_text(
-        "📝 <b>Add Product (Step 2/6)</b>\n\nEnter Product Title / Name (e.g. <code>Netflix Premium 1-Month</code>):",
+        "🛍 <b>Add New Product: Step 2/6</b>\n\nReply with the <b>Product Name</b> (e.g. <i>NordVPN 1-Month Account</i>):",
         reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("❌ Cancel", callback_data="admin_home")]]),
         parse_mode=ParseMode.HTML
     )
     return ADD_PROD_NAME
 
 async def handle_prod_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    context.user_data["add_prod_name"] = update.message.text.strip()
+    context.user_data["new_prod_name"] = update.message.text.strip()
     await update.message.reply_text(
-        "📄 <b>Add Product (Step 3/6)</b>\n\nEnter Product Description (features, terms, warranty):",
-        reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("❌ Cancel", callback_data="admin_home")]]),
+        "🛍 <b>Add New Product: Step 3/6</b>\n\nReply with a detailed <b>Product Description / Features</b>:",
         parse_mode=ParseMode.HTML
     )
     return ADD_PROD_DESC
 
 async def handle_prod_desc(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    context.user_data["add_prod_desc"] = update.message.text.strip()
+    context.user_data["new_prod_desc"] = update.message.text.strip()
     currency = await database.get_setting("currency_symbol", "$")
     await update.message.reply_text(
-        f"💵 <b>Add Product (Step 4/6)</b>\n\nEnter Price in {currency} (e.g. <code>9.99</code> or <code>25</code>):",
-        reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("❌ Cancel", callback_data="admin_home")]]),
+        f"🛍 <b>Add New Product: Step 4/6</b>\n\nReply with the <b>Price in {currency}</b> (e.g. <code>5.00</code> or <code>12.50</code>):",
         parse_mode=ParseMode.HTML
     )
     return ADD_PROD_PRICE
@@ -204,55 +492,60 @@ async def handle_prod_price(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text.replace("$", "").strip()
     try:
         price = float(text)
-        context.user_data["add_prod_price"] = price
-    except ValueError:
-        await update.message.reply_text("⚠️ Invalid price. Please enter a valid number (e.g. 15.00):")
-        return ADD_PROD_PRICE
+        context.user_data["new_prod_price"] = price
 
-    keyboard = InlineKeyboardMarkup([
-        [InlineKeyboardButton("⚡ Digital Auto-Stock (Keys / Accounts)", callback_data="prodtype_digital")],
-        [InlineKeyboardButton("🛠 Manual Service / Custom Delivery", callback_data="prodtype_manual")],
-        [InlineKeyboardButton("❌ Cancel", callback_data="admin_home")]
-    ])
-    await update.message.reply_text(
-        "⚙️ <b>Add Product (Step 5/6)</b>\n\nSelect Delivery Type:\n\n"
-        "• <b>Digital Auto-Stock:</b> Bot instantly delivers credentials/keys from stock.\n"
-        "• <b>Manual Service:</b> Customer submits info, Admin manually fulfills.",
-        reply_markup=keyboard,
-        parse_mode=ParseMode.HTML
-    )
-    return ADD_PROD_TYPE
+        keyboard = InlineKeyboardMarkup([
+            [InlineKeyboardButton("⚡ Instant Digital Key / Auto-Delivery", callback_data="prodtype_digital")],
+            [InlineKeyboardButton("🛠 Manual Service / Custom Order", callback_data="prodtype_manual")],
+            [InlineKeyboardButton("❌ Cancel", callback_data="admin_home")]
+        ])
+
+        await update.message.reply_text(
+            "🛍 <b>Add New Product: Step 5/6</b>\n\nChoose the <b>Delivery Type</b>:",
+            reply_markup=keyboard,
+            parse_mode=ParseMode.HTML
+        )
+        return ADD_PROD_TYPE
+    except ValueError:
+        await update.message.reply_text("⚠️ Invalid price. Please enter numbers only (e.g. 5.50):")
+        return ADD_PROD_PRICE
 
 async def handle_prod_type(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
-    del_type = query.data.split("_")[1]
+    dtype = query.data.split("_")[1]
     await query.answer()
 
-    context.user_data["add_prod_type"] = del_type
+    context.user_data["new_prod_dtype"] = dtype
+
+    keyboard = InlineKeyboardMarkup([
+        [InlineKeyboardButton("⏩ Skip Image", callback_data="skip_prod_img")],
+        [InlineKeyboardButton("❌ Cancel", callback_data="admin_home")]
+    ])
+
     await query.edit_message_text(
-        "🖼 <b>Add Product (Step 6/6)</b>\n\nSend a direct Image URL (e.g. <code>https://example.com/photo.png</code>) or send <code>-</code> to skip:",
-        reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("⏭ Skip Image", callback_data="skip_prod_img")]]),
+        "🛍 <b>Add New Product: Step 6/6</b>\n\nSend a direct Image URL (e.g. <code>https://i.imgur.com/...jpg</code>) or click Skip:",
+        reply_markup=keyboard,
         parse_mode=ParseMode.HTML
     )
     return ADD_PROD_IMAGE
 
 async def handle_prod_image_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
     img_url = update.message.text.strip()
-    if img_url == "-":
-        img_url = None
-    return await finalize_product_creation(update, context, img_url)
+    return await finish_add_product(update, context, img_url=img_url)
 
 async def handle_skip_prod_img(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
-    return await finalize_product_creation(update, context, None, is_callback=True)
+    return await finish_add_product(update, context, img_url=None, is_callback=True)
 
-async def finalize_product_creation(update: Update, context: ContextTypes.DEFAULT_TYPE, img_url: str = None, is_callback: bool = False):
-    cat_id = context.user_data.get("add_prod_cat_id")
-    name = context.user_data.get("add_prod_name")
-    desc = context.user_data.get("add_prod_desc")
-    price = context.user_data.get("add_prod_price")
-    del_type = context.user_data.get("add_prod_type", "digital")
+async def finish_add_product(update: Update, context: ContextTypes.DEFAULT_TYPE, img_url: str = None, is_callback: bool = False):
+    cat_id = context.user_data.get("new_prod_cat_id")
+    name = context.user_data.get("new_prod_name")
+    desc = context.user_data.get("new_prod_desc")
+    price = context.user_data.get("new_prod_price")
+    dtype = context.user_data.get("new_prod_dtype")
+
+    currency = await database.get_setting("currency_symbol", "$")
 
     prod_id = await database.add_product(
         category_id=cat_id,
@@ -260,192 +553,109 @@ async def finalize_product_creation(update: Update, context: ContextTypes.DEFAUL
         description=desc,
         price=price,
         image_url=img_url,
-        delivery_type=del_type
+        delivery_type=dtype
     )
 
-    for k in ["add_prod_cat_id", "add_prod_name", "add_prod_desc", "add_prod_price", "add_prod_type"]:
-        context.user_data.pop(k, None)
-
-    currency = await database.get_setting("currency_symbol", "$")
-    text = (
-        f"✅ <b>Product Added Successfully!</b>\n\n"
-        f"🏷 <b>Name:</b> <code>{escape(name)}</code> (ID: <code>{prod_id}</code>)\n"
+    success_text = (
+        f"🎉 <b>Product Added Successfully!</b>\n\n"
+        f"🏷 <b>Name:</b> <code>{escape(name)}</code>\n"
         f"💵 <b>Price:</b> <code>{currency}{price:.2f}</code>\n"
-        f"⚙️ <b>Type:</b> <code>{del_type.capitalize()}</code>\n\n"
-        f"👉 <i>If this is a digital product, don't forget to add digital stock items!</i>"
+        f"📦 <b>Type:</b> <code>{dtype}</code>\n"
+        f"🆔 <b>Product ID:</b> <code>{prod_id}</code>\n\n"
+        f"<i>You can now add stock items if this is an instant digital product.</i>"
     )
+
     keyboard = InlineKeyboardMarkup([
-        [InlineKeyboardButton("🔑 Add Stock Now", callback_data=f"adm_add_stock_{prod_id}")],
+        [InlineKeyboardButton("➕ Add Stock Items", callback_data=f"adm_add_stock_{prod_id}")],
         [InlineKeyboardButton("📦 Product List", callback_data="adm_list_products"), InlineKeyboardButton("🛠 Admin Panel", callback_data="admin_home")]
     ])
 
     if is_callback:
-        await update.callback_query.edit_message_text(text, reply_markup=keyboard, parse_mode=ParseMode.HTML)
+        await update.callback_query.edit_message_text(success_text, reply_markup=keyboard, parse_mode=ParseMode.HTML)
     else:
-        await update.message.reply_text(text, reply_markup=keyboard, parse_mode=ParseMode.HTML)
+        await update.message.reply_text(success_text, reply_markup=keyboard, parse_mode=ParseMode.HTML)
 
+    context.user_data.clear()
     return ConversationHandler.END
 
-# -------------------- PRODUCT & STOCK MANAGEMENT --------------------
-
-async def admin_list_products(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer()
-
-    products = await database.get_all_products(limit=50)
-    currency = await database.get_setting("currency_symbol", "$")
-
-    if not products:
-        text = "📦 <b>Product Management</b>\n\n⚠️ No products created yet."
-        keyboard = InlineKeyboardMarkup([
-            [InlineKeyboardButton("➕ Add Product", callback_data="adm_add_product")],
-            [InlineKeyboardButton("🔙 Back to Admin", callback_data="admin_home")]
-        ])
-        await query.edit_message_text(text, reply_markup=keyboard, parse_mode=ParseMode.HTML)
-        return
-
-    text = "📦 <b>Product Management</b>\n\nSelect a product to view options, edit price, or manage stock:"
-    buttons = []
-    for p in products:
-        stock_count = await database.get_available_stock_count(p["id"]) if p["delivery_type"] == "digital" else "Manual"
-        buttons.append([InlineKeyboardButton(f"{p['name']} - {currency}{p['price']:.2f} (Stock: {stock_count})", callback_data=f"adm_manage_p_{p['id']}")])
-
-    buttons.append([InlineKeyboardButton("➕ Add New Product", callback_data="adm_add_product")])
-    buttons.append([InlineKeyboardButton("🔙 Back to Admin", callback_data="admin_home")])
-
-    keyboard = InlineKeyboardMarkup(buttons)
-    await query.edit_message_text(text, reply_markup=keyboard, parse_mode=ParseMode.HTML)
-
-async def admin_view_product_ops(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    prod_id = int(query.data.split("_")[3])
-    await query.answer()
-
-    p = await database.get_product(prod_id)
-    if not p:
-        await query.edit_message_text("Product not found.", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Back", callback_data="adm_list_products")]]))
-        return
-
-    currency = await database.get_setting("currency_symbol", "$")
-    stock_count = await database.get_available_stock_count(p["id"]) if p["delivery_type"] == "digital" else "N/A (Manual)"
-
-    text = (
-        f"📦 <b>Product Management:</b> <code>{escape(p['name'])}</code>\n\n"
-        f"🆔 ID: <code>{p['id']}</code>\n"
-        f"📂 Category: <code>{escape(p.get('category_name', 'None'))}</code>\n"
-        f"💵 Price: <code>{currency}{p['price']:.2f}</code>\n"
-        f"⚙️ Type: <code>{p['delivery_type']}</code>\n"
-        f"📦 Current Stock: <code>{stock_count}</code>\n\n"
-        f"📝 Description:\n<code>{escape(p.get('description') or 'None')}</code>"
-    )
-
-    buttons = [
-        [InlineKeyboardButton("🔑 Add Stock Items", callback_data=f"adm_add_stock_{p['id']}")],
-        [InlineKeyboardButton("🗑 Delete Product", callback_data=f"adm_del_prod_{p['id']}")],
-        [InlineKeyboardButton("🔙 Back to Products", callback_data="adm_list_products")]
-    ]
-
-    await query.edit_message_text(text, reply_markup=InlineKeyboardMarkup(buttons), parse_mode=ParseMode.HTML)
-
-async def admin_delete_product(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    prod_id = int(query.data.split("_")[3])
-    await query.answer()
-
-    await database.delete_product(prod_id)
-    await query.edit_message_text("✅ Product deleted successfully.", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Product List", callback_data="adm_list_products")]]))
-
-# -------------------- BULK STOCK UPLOAD --------------------
+# -------------------- STOCK MANAGEMENT --------------------
 
 async def admin_stock_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
 
-    products = await database.get_all_products(limit=50)
+    products = await database.get_all_products()
     digital_products = [p for p in products if p["delivery_type"] == "digital"]
 
-    if not digital_products:
-        await query.edit_message_text(
-            "⚠️ No digital products found. Please add a product with 'Digital Auto-Stock' type first.",
-            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Admin Panel", callback_data="admin_home")]])
-        )
-        return
-
+    text = "🔑 <b>Digital Product Stock Management</b>\n\nSelect a product to view or upload digital stock items:\n\n"
     buttons = []
     for p in digital_products:
         count = await database.get_available_stock_count(p["id"])
-        buttons.append([InlineKeyboardButton(f"🔑 {p['name']} (Stock: {count})", callback_data=f"adm_add_stock_{p['id']}")])
-    buttons.append([InlineKeyboardButton("🔙 Back to Admin", callback_data="admin_home")])
+        text += f"• <b>{escape(p['name'])}</b>: <code>{count}</code> items available\n"
+        buttons.append([InlineKeyboardButton(f"➕ Add Stock to {p['name']} ({count})", callback_data=f"adm_add_stock_{p['id']}")])
 
-    await query.edit_message_text(
-        "🔑 <b>Stock Management</b>\n\nSelect a product to add / restock digital goods (Accounts, Keys, Codes):",
-        reply_markup=InlineKeyboardMarkup(buttons),
-        parse_mode=ParseMode.HTML
-    )
+    buttons.append([InlineKeyboardButton("🔙 Back to Admin", callback_data="admin_home")])
+    await query.edit_message_text(text, reply_markup=InlineKeyboardMarkup(buttons), parse_mode=ParseMode.HTML)
 
 async def start_add_stock(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     prod_id = int(query.data.split("_")[3])
     await query.answer()
 
-    context.user_data["stock_target_prod_id"] = prod_id
-    p = await database.get_product(prod_id)
-    count = await database.get_available_stock_count(prod_id)
+    product = await database.get_product(prod_id)
+    if not product:
+        await query.edit_message_text("Product not found.")
+        return ConversationHandler.END
+
+    context.user_data["add_stock_prod_id"] = prod_id
 
     text = (
-        f"🔑 <b>Upload Digital Stock for: <code>{escape(p['name'])}</code></b>\n\n"
-        f"Current Stock: <code>{count}</code> items\n\n"
-        f"Please send the stock items.\n"
-        f"💡 <b>Bulk Upload Supported:</b> You can send multiple accounts/keys separated by new lines.\n\n"
-        f"<i>(Example:</i>\n<code>user1:pass1</code>\n<code>user2:pass2</code>\n<code>KEY-1234-5678</code><i>)</i>"
+        f"🔑 <b>Upload Stock for: {escape(product['name'])}</b>\n\n"
+        f"Please reply with your stock items/keys/accounts (<b>One item per line</b>):\n\n"
+        f"<i>Example:</i>\n"
+        f"<code>email1@test.com:pass123\nemail2@test.com:pass456\nlicense-key-789XYZ</code>"
     )
     keyboard = InlineKeyboardMarkup([[InlineKeyboardButton("❌ Cancel", callback_data="adm_stock_menu")]])
     await query.edit_message_text(text, reply_markup=keyboard, parse_mode=ParseMode.HTML)
     return ADD_STOCK_ITEMS
 
 async def handle_add_stock_items(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    raw_text = update.message.text
-    prod_id = context.user_data.get("stock_target_prod_id")
+    lines = [line.strip() for line in update.message.text.split("\n") if line.strip()]
+    prod_id = context.user_data.get("add_stock_prod_id")
 
     if not prod_id:
-        await update.message.reply_text("Session expired. Please try again.")
+        await update.message.reply_text("Session expired.")
         return ConversationHandler.END
 
-    items = [line.strip() for line in raw_text.splitlines() if line.strip()]
-    if not items:
-        await update.message.reply_text("⚠️ No valid items detected. Please send at least one line with item data:")
-        return ADD_STOCK_ITEMS
-
-    added_count = await database.add_product_stock_bulk(prod_id, items)
-    total_count = await database.get_available_stock_count(prod_id)
+    product = await database.get_product(prod_id)
+    added_count = await database.add_product_stock_bulk(prod_id, lines)
+    total_avail = await database.get_available_stock_count(prod_id)
 
     await update.message.reply_text(
-        f"✅ <b>Stock Updated!</b>\n\n"
-        f"➕ Successfully added <code>{added_count}</code> items.\n"
-        f"📦 <b>Total Available Stock:</b> <code>{total_count}</code> items.",
+        f"✅ <b>Successfully Added {added_count} Items!</b>\n\n"
+        f"📦 Product: <b>{escape(product['name'])}</b>\n"
+        f"🔑 Total In-Stock: <code>{total_avail}</code> items",
         reply_markup=InlineKeyboardMarkup([
-            [InlineKeyboardButton("🔑 Add More Stock", callback_data=f"adm_add_stock_{prod_id}")],
-            [InlineKeyboardButton("📦 Product List", callback_data="adm_list_products"), InlineKeyboardButton("🛠 Admin Panel", callback_data="admin_home")]
+            [InlineKeyboardButton("➕ Add More", callback_data=f"adm_add_stock_{prod_id}"), InlineKeyboardButton("🔑 Stock Menu", callback_data="adm_stock_menu")],
+            [InlineKeyboardButton("🛠 Admin Panel", callback_data="admin_home")]
         ]),
         parse_mode=ParseMode.HTML
     )
-    context.user_data.pop("stock_target_prod_id", None)
+    context.user_data.pop("add_stock_prod_id", None)
     return ConversationHandler.END
 
-# -------------------- USER BALANCE MANAGEMENT --------------------
+# -------------------- USER MANAGEMENT --------------------
 
 async def admin_users_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
 
-    total_users = await database.get_total_users_count()
     text = (
         f"👥 <b>User Management</b>\n\n"
-        f"Total Registered Users: <code>{total_users}</code>\n\n"
-        f"Send user Telegram ID to search profile and adjust balance."
+        f"Search for a user by Telegram ID or Username to adjust balance or view purchase records."
     )
     keyboard = InlineKeyboardMarkup([
-        [InlineKeyboardButton("🔍 Search User by ID", callback_data="adm_search_user_btn")],
+        [InlineKeyboardButton("🔍 Search User by ID / Username", callback_data="adm_search_user_btn")],
         [InlineKeyboardButton("🔙 Back to Admin", callback_data="admin_home")]
     ])
     await query.edit_message_text(text, reply_markup=keyboard, parse_mode=ParseMode.HTML)
@@ -453,43 +663,85 @@ async def admin_users_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def prompt_search_user(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
+
     await query.edit_message_text(
-        "🔍 <b>Search User</b>\n\nPlease reply with the User's Telegram ID (e.g. <code>6575066703</code>):",
+        "🔍 <b>Search User</b>\n\nPlease enter the user's Telegram ID (e.g. <code>123456789</code>) or @Username:",
         reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("❌ Cancel", callback_data="adm_users_menu")]]),
         parse_mode=ParseMode.HTML
     )
     return ADMIN_USER_SEARCH
 
 async def handle_user_search_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    text = update.message.text.strip()
-    try:
-        target_id = int(text)
-        user = await database.get_user(target_id)
-        if not user:
-            await update.message.reply_text("❌ User not found in database. Make sure they have interacted with the bot at least once.")
-            return ConversationHandler.END
+    query_text = update.message.text.replace("@", "").strip()
+    currency = await database.get_setting("currency_symbol", "$")
 
-        context.user_data["target_user_id"] = target_id
-        currency = await database.get_setting("currency_symbol", "$")
+    user = None
+    if query_text.isdigit():
+        user = await database.get_user(int(query_text))
+    else:
+        user = await database.get_user_by_username(query_text)
 
-        info_text = (
-            f"👤 <b>User Profile: {escape(user.get('first_name', 'N/A'))}</b>\n\n"
-            f"🆔 Telegram ID: <code>{user['telegram_id']}</code>\n"
-            f"🏷 Username: @{escape(user.get('username', 'N/A'))}\n"
-            f"💰 Balance: <code>{currency}{user['balance']:.2f}</code>\n"
-            f"📥 Total Deposited: <code>{currency}{user['total_deposited']:.2f}</code>\n"
-            f"🛒 Total Spent: <code>{currency}{user['total_spent']:.2f}</code>\n"
+    if not user:
+        await update.message.reply_text(
+            f"❌ User not found with ID/Username: <code>{escape(query_text)}</code>",
+            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔍 Try Again", callback_data="adm_search_user_btn")]])
         )
-        keyboard = InlineKeyboardMarkup([
-            [InlineKeyboardButton("🔙 Back", callback_data="adm_users_menu")]
-        ])
-        await update.message.reply_text(info_text, reply_markup=keyboard, parse_mode=ParseMode.HTML)
         return ConversationHandler.END
-    except ValueError:
-        await update.message.reply_text("⚠️ Please enter a numeric Telegram ID:")
-        return ADMIN_USER_SEARCH
 
-# -------------------- BROADCAST ANNOUNCEMENT --------------------
+    lang = user.get("language", "en")
+    lang_info = LANGUAGES.get(lang, LANGUAGES["en"])
+    user_info = (
+        f"👤 <b>User Details</b>\n\n"
+        f"🆔 <b>Telegram ID:</b> <code>{user['telegram_id']}</code>\n"
+        f"👤 <b>Name:</b> {escape(user.get('first_name', 'N/A'))}\n"
+        f"🏷 <b>Username:</b> @{escape(user.get('username', 'N/A'))}\n"
+        f"🌐 <b>Language:</b> {lang_info['flag']} {lang_info['name']}\n"
+        f"💰 <b>Balance:</b> <code>{currency}{user['balance']:.2f}</code>\n"
+        f"📥 <b>Deposited:</b> <code>{currency}{user['total_deposited']:.2f}</code>\n"
+        f"🛒 <b>Spent:</b> <code>{currency}{user['total_spent']:.2f}</code>\n"
+        f"📅 <b>Joined:</b> <code>{user.get('created_at', 'N/A')}</code>"
+    )
+
+    keyboard = InlineKeyboardMarkup([
+        [
+            InlineKeyboardButton(f"➕ Add {currency}5", callback_data=f"adm_adj_bal_{user['telegram_id']}_5"),
+            InlineKeyboardButton(f"➕ Add {currency}10", callback_data=f"adm_adj_bal_{user['telegram_id']}_10"),
+            InlineKeyboardButton(f"➕ Add {currency}25", callback_data=f"adm_adj_bal_{user['telegram_id']}_25")
+        ],
+        [
+            InlineKeyboardButton(f"➖ Deduct {currency}5", callback_data=f"adm_adj_bal_{user['telegram_id']}_-5"),
+            InlineKeyboardButton(f"➖ Deduct {currency}10", callback_data=f"adm_adj_bal_{user['telegram_id']}_-10")
+        ],
+        [InlineKeyboardButton("👥 Back to Users", callback_data="adm_users_menu")]
+    ])
+
+    await update.message.reply_text(user_info, reply_markup=keyboard, parse_mode=ParseMode.HTML)
+    return ConversationHandler.END
+
+async def handle_balance_adjust(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    parts = query.data.split("_")
+    user_id = int(parts[3])
+    amount = float(parts[4])
+    currency = await database.get_setting("currency_symbol", "$")
+
+    await database.update_user_balance(user_id, amount, is_deposit=(amount > 0))
+    await query.answer(f"Balance adjusted by {currency}{amount:.2f}!", show_alert=True)
+
+    # Notify User
+    try:
+        user_lang = await database.get_user_language(user_id)
+        if amount > 0:
+            notif = f"🎁 <b>Admin Bonus / Balance Added!</b>\n\n<code>+{currency}{amount:.2f}</code> has been added to your wallet balance."
+        else:
+            notif = f"⚠️ <b>Admin Balance Adjustment:</b>\n\n<code>{currency}{amount:.2f}</code> was deducted from your wallet."
+        await context.bot.send_message(chat_id=user_id, text=notif, parse_mode=ParseMode.HTML)
+    except Exception:
+        pass
+
+    await admin_users_menu(update, context)
+
+# -------------------- BROADCAST --------------------
 
 async def start_broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query

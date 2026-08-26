@@ -126,6 +126,10 @@ async def init_db():
             ("currency_symbol", CURRENCY_SYMBOL),
             ("support_username", SUPPORT_USERNAME),
             ("min_deposit", str(MIN_DEPOSIT)),
+            ("chatgpt_promo_enabled", "1"),
+            ("chatgpt_promo_price", "1.00"),
+            ("chatgpt_promo_title", "ChatGPT 3-Month Promo Offer"),
+            ("chatgpt_promo_desc", "Special 3-Month ChatGPT Subscription Promo. Activate directly on your Gmail / Email.")
         ]
         for key, val in default_settings:
             await db.execute(

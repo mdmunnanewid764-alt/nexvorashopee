@@ -208,6 +208,20 @@ def main():
     ))
 
     app.add_handler(ConversationHandler(
+        entry_points=[CallbackQueryHandler(user_h.start_buy_chatgpt_promo, pattern="^start_buy_promo$")],
+        states={user_h.PROMO_EMAIL_INPUT: [MessageHandler(filters.TEXT & ~filters.COMMAND, user_h.handle_chatgpt_promo_email_input)]},
+        fallbacks=[CallbackQueryHandler(user_h.show_chatgpt_promo, pattern="^user_chatgpt_promo$")],
+        per_message=False
+    ))
+
+    app.add_handler(ConversationHandler(
+        entry_points=[CallbackQueryHandler(admin_h.start_edit_promo_price, pattern="^adm_edit_promo_price_start$")],
+        states={admin_h.EDIT_PROMO_PRICE: [MessageHandler(filters.TEXT & ~filters.COMMAND, admin_h.handle_edit_promo_price_input)]},
+        fallbacks=[CallbackQueryHandler(admin_h.admin_promo_menu, pattern="^adm_promo_menu$")],
+        per_message=False
+    ))
+
+    app.add_handler(ConversationHandler(
         entry_points=[CallbackQueryHandler(admin_h.start_add_category, pattern="^adm_add_cat_start$")],
         states={
             admin_h.ADD_CAT_NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, admin_h.handle_add_cat_name)],
@@ -281,9 +295,14 @@ def main():
     app.add_handler(CallbackQueryHandler(user_h.show_support, pattern="^user_support$"))
     app.add_handler(CallbackQueryHandler(user_h.show_language_menu, pattern="^user_language_menu$"))
     app.add_handler(CallbackQueryHandler(user_h.handle_set_language, pattern="^setlang_"))
+    app.add_handler(CallbackQueryHandler(user_h.show_chatgpt_promo, pattern="^user_chatgpt_promo$"))
 
     # Admin Callback Queries
     app.add_handler(CallbackQueryHandler(admin_h.admin_panel, pattern="^admin_home$"))
+    app.add_handler(CallbackQueryHandler(admin_h.admin_promo_menu, pattern="^adm_promo_menu$"))
+    app.add_handler(CallbackQueryHandler(admin_h.admin_toggle_promo, pattern="^adm_toggle_promo$"))
+    app.add_handler(CallbackQueryHandler(admin_h.handle_adm_promo_confirm, pattern="^adm_promo_confirm_"))
+    app.add_handler(CallbackQueryHandler(admin_h.handle_adm_promo_refund, pattern="^adm_promo_refund_"))
     app.add_handler(CallbackQueryHandler(admin_h.admin_cat_menu, pattern="^adm_cat_menu$"))
     app.add_handler(CallbackQueryHandler(admin_h.handle_del_category, pattern="^adm_del_cat_"))
     app.add_handler(CallbackQueryHandler(admin_h.admin_list_products, pattern="^adm_list_products$"))

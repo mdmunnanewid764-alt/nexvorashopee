@@ -12,13 +12,22 @@ from locales import t, LANGUAGES
 logger = logging.getLogger(__name__)
 
 # Conversation states for User
-CUSTOM_DEPOSIT_AMOUNT, SUBMIT_TX_NETWORK, SUBMIT_TX_HASH, MANUAL_ORDER_INPUT = range(4)
+CUSTOM_DEPOSIT_AMOUNT, SUBMIT_TX_NETWORK, SUBMIT_TX_HASH, MANUAL_ORDER_INPUT, PROMO_EMAIL_INPUT = range(5)
 
 def escape(text: str) -> str:
     return html.escape(str(text) if text is not None else "")
 
-def get_main_menu_keyboard(lang: str = "en", is_admin: bool = False):
-    keyboard = [
+async def get_main_menu_keyboard(lang: str = "en", is_admin: bool = False):
+    promo_enabled = await database.get_setting("chatgpt_promo_enabled", "1")
+    promo_price = float(await database.get_setting("chatgpt_promo_price", "1.00"))
+    currency = await database.get_setting("currency_symbol", "$")
+
+    keyboard = []
+    if promo_enabled == "1":
+        promo_btn_text = t("btn_chatgpt_promo", lang, symbol=currency, price=promo_price)
+        keyboard.append([InlineKeyboardButton(promo_btn_text, callback_data="user_chatgpt_promo")])
+
+    keyboard.extend([
         [
             InlineKeyboardButton(t("btn_shop", lang), callback_data="user_categories"),
             InlineKeyboardButton(t("btn_wallet", lang), callback_data="user_wallet")
@@ -31,7 +40,7 @@ def get_main_menu_keyboard(lang: str = "en", is_admin: bool = False):
             InlineKeyboardButton(t("btn_support", lang), callback_data="user_support"),
             InlineKeyboardButton(t("btn_language", lang), callback_data="user_language_menu")
         ]
-    ]
+    ])
     if is_admin:
         keyboard.append([InlineKeyboardButton(t("btn_admin", lang), callback_data="admin_home")])
     return InlineKeyboardMarkup(keyboard)
@@ -68,7 +77,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"👇 <i>{choose_label}</i>"
     )
 
-    keyboard = get_main_menu_keyboard(lang, is_admin)
+    keyboard = await get_main_menu_keyboard(lang, is_admin)
 
     if update.callback_query:
         await update.callback_query.answer()
@@ -90,6 +99,154 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             reply_markup=keyboard,
             parse_mode=ParseMode.HTML
         )
+
+# -------------------- CHATGPT PROMO OFFER FLOW --------------------
+
+async def show_chatgpt_promo(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    if query:
+        await query.answer()
+
+    user_id = query.from_user.id if query else update.effective_user.id
+    lang = await database.get_user_language(user_id)
+    promo_enabled = await database.get_setting("chatgpt_promo_enabled", "1")
+    promo_price = float(await database.get_setting("chatgpt_promo_price", "1.00"))
+    currency = await database.get_setting("currency_symbol", "$")
+    user = await database.get_user(user_id)
+    balance = user["balance"] if user else 0.0
+
+    if promo_enabled != "1":
+        text = f"🤖 <b>{t('chatgpt_promo_title', lang)}</b>\n\n{t('chatgpt_promo_disabled', lang)}"
+        keyboard = InlineKeyboardMarkup([[InlineKeyboardButton(t("btn_back_main", lang), callback_data="user_menu")]])
+        if query:
+            await query.edit_message_text(text, reply_markup=keyboard, parse_mode=ParseMode.HTML)
+        else:
+            await update.message.reply_text(text, reply_markup=keyboard, parse_mode=ParseMode.HTML)
+        return
+
+    text = (
+        f"{t('chatgpt_promo_title', lang)}\n\n"
+        f"📝 <b>{t('description_label', lang)}:</b>\n"
+        f"{t('chatgpt_promo_desc', lang)}\n\n"
+        f"💵 <b>{t('price', lang)}:</b> <code>{currency}{promo_price:.2f}</code>\n"
+        f"💰 <b>{t('balance', lang)}:</b> <code>{currency}{balance:.2f}</code>\n\n"
+        f"⚡ <i>{t('manual_delivery_info', lang)}</i>"
+    )
+
+    keyboard = InlineKeyboardMarkup([
+        [InlineKeyboardButton(t("btn_buy_balance", lang, symbol=currency, price=promo_price), callback_data="start_buy_promo")],
+        [InlineKeyboardButton(t("btn_deposit_now", lang), callback_data="user_deposit")],
+        [InlineKeyboardButton(t("btn_back_main", lang), callback_data="user_menu")]
+    ])
+
+    if query:
+        await query.edit_message_text(text, reply_markup=keyboard, parse_mode=ParseMode.HTML)
+    else:
+        await update.message.reply_text(text, reply_markup=keyboard, parse_mode=ParseMode.HTML)
+
+async def start_buy_chatgpt_promo(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+
+    user_id = query.from_user.id
+    lang = await database.get_user_language(user_id)
+    promo_enabled = await database.get_setting("chatgpt_promo_enabled", "1")
+    promo_price = float(await database.get_setting("chatgpt_promo_price", "1.00"))
+    currency = await database.get_setting("currency_symbol", "$")
+    user = await database.get_user(user_id)
+
+    if promo_enabled != "1":
+        await query.answer(t("chatgpt_promo_disabled", lang), show_alert=True)
+        return ConversationHandler.END
+
+    if not user or user["balance"] < promo_price:
+        shortage = promo_price - (user["balance"] if user else 0.0)
+        text = t("insufficient_balance", lang, symbol=currency, price=promo_price, balance=(user["balance"] if user else 0.0), shortage=shortage)
+        keyboard = InlineKeyboardMarkup([
+            [InlineKeyboardButton(t("btn_deposit_now", lang), callback_data="user_deposit")],
+            [InlineKeyboardButton(t("btn_back_main", lang), callback_data="user_menu")]
+        ])
+        await query.edit_message_text(text, reply_markup=keyboard, parse_mode=ParseMode.HTML)
+        return ConversationHandler.END
+
+    context.user_data["pending_promo_price"] = promo_price
+
+    prompt_text = t("chatgpt_promo_ask_email", lang, symbol=currency, price=promo_price)
+    keyboard = InlineKeyboardMarkup([
+        [InlineKeyboardButton("❌ Cancel", callback_data="user_chatgpt_promo")]
+    ])
+    await query.edit_message_text(prompt_text, reply_markup=keyboard, parse_mode=ParseMode.HTML)
+    return PROMO_EMAIL_INPUT
+
+async def handle_chatgpt_promo_email_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    lang = await database.get_user_language(user_id)
+    email_text = update.message.text.strip()
+    currency = await database.get_setting("currency_symbol", "$")
+    promo_price = float(await database.get_setting("chatgpt_promo_price", "1.00"))
+    user = await database.get_user(user_id)
+
+    if not ("@" in email_text and "." in email_text and len(email_text) >= 5):
+        warn_text = t("chatgpt_promo_invalid_email", lang)
+        await update.message.reply_text(warn_text, parse_mode=ParseMode.HTML)
+        return PROMO_EMAIL_INPUT
+
+    if not user or user["balance"] < promo_price:
+        await update.message.reply_text(t("insufficient_balance", lang, symbol=currency, price=promo_price, balance=(user["balance"] if user else 0.0), shortage=promo_price), parse_mode=ParseMode.HTML)
+        return ConversationHandler.END
+
+    # Deduct balance
+    await database.update_user_balance(user_id, -promo_price, is_spend=True)
+
+    order_code = f"ORD_GPT_{int(time.time())}_{user_id % 10000}"
+    await database.create_order(
+        order_code=order_code,
+        user_id=user_id,
+        product_id=0,
+        product_name="ChatGPT 3-Month Promo Offer",
+        quantity=1,
+        total_price=promo_price,
+        delivery_type="chatgpt_promo",
+        delivery_data=email_text,
+        status="PENDING_ADMIN_REVIEW"
+    )
+
+    success_text = t(
+        "chatgpt_promo_order_submitted", lang,
+        code=order_code,
+        email=escape(email_text),
+        symbol=currency,
+        price=promo_price
+    )
+    keyboard = InlineKeyboardMarkup([
+        [InlineKeyboardButton(t("btn_orders", lang), callback_data="user_orders"), InlineKeyboardButton(t("btn_back_main", lang), callback_data="user_menu")]
+    ])
+    await update.message.reply_text(success_text, reply_markup=keyboard, parse_mode=ParseMode.HTML)
+
+    # Notify Admin with Action Buttons
+    try:
+        first_name_safe = escape(update.effective_user.first_name)
+        admin_alert = (
+            f"🚨 <b>New ChatGPT 3-Month Promo Order!</b>\n\n"
+            f"👤 <b>Buyer:</b> <a href='tg://user?id={user_id}'>{first_name_safe}</a> (<code>{user_id}</code>)\n"
+            f"🏷 <b>Offer:</b> <code>ChatGPT 3-Month Promo</code>\n"
+            f"📧 <b>Target Email:</b> <code>{escape(email_text)}</code>\n"
+            f"💵 <b>Price Paid:</b> <code>{currency}{promo_price:.2f}</code>\n"
+            f"🔖 <b>Order Code:</b> <code>{order_code}</code>\n\n"
+            f"👇 <i>Admin Action: Confirm activation or Cancel with refund:</i>"
+        )
+        admin_keyboard = InlineKeyboardMarkup([
+            [
+                InlineKeyboardButton("✅ Confirm & Activate", callback_data=f"adm_promo_confirm_{order_code}"),
+                InlineKeyboardButton("❌ Cancel & Refund", callback_data=f"adm_promo_refund_{order_code}")
+            ]
+        ])
+        await context.bot.send_message(chat_id=ADMIN_ID, text=admin_alert, reply_markup=admin_keyboard, parse_mode=ParseMode.HTML)
+    except Exception as e:
+        logger.warning(f"Failed to notify admin of promo order: {e}")
+
+    context.user_data.pop("pending_promo_price", None)
+    return ConversationHandler.END
 
 # -------------------- LANGUAGE SELECTION --------------------
 
@@ -132,7 +289,6 @@ async def handle_set_language(update: Update, context: ContextTypes.DEFAULT_TYPE
 
     await database.set_user_language(user_id, new_lang)
     lang_info = LANGUAGES.get(new_lang, LANGUAGES["en"])
-    lang_name = f"{lang_info['flag']} {lang_info['name']}"
 
     await query.answer(f"Language set to {lang_info['name']}")
 
@@ -815,14 +971,20 @@ async def show_orders(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     text = t("orders_title", lang)
     for o in orders:
-        status_icon = "✅" if o["status"] == "COMPLETED" else "⏳"
+        if o["status"] == "COMPLETED":
+            status_icon = "✅"
+        elif o["status"] == "CANCELLED_REFUNDED":
+            status_icon = "❌"
+        else:
+            status_icon = "⏳"
+
         text += (
             f"{status_icon} <b>{escape(o['product_name'])}</b>\n"
             f"🔖 Code: <code>{o['order_code']}</code> | Price: <code>{currency}{o['total_price']:.2f}</code>\n"
-            f"📅 Date: <code>{o['created_at']}</code>\n"
+            f"📊 Status: <code>{o['status']}</code> | Date: <code>{o['created_at']}</code>\n"
         )
-        if o["delivery_type"] == "digital" and o.get("delivery_data"):
-            text += f"🔑 Item: <code>{escape(o['delivery_data'])}</code>\n"
+        if o.get("delivery_data"):
+            text += f"🔑 Details: <code>{escape(o['delivery_data'])}</code>\n"
         text += "────────────────────\n"
 
     keyboard = InlineKeyboardMarkup([
