@@ -2,7 +2,7 @@ import logging
 import asyncio
 import os
 from aiohttp import web
-from telegram import Update
+from telegram import Update, BotCommand
 from telegram.request import HTTPXRequest
 from telegram.ext import (
     Application,
@@ -162,6 +162,19 @@ async def post_init(application: Application):
         logger.info("Webhook cleared, polling initialized cleanly.")
     except Exception as e:
         logger.warning(f"Note on webhook cleanup: {e}")
+
+    # Set clean public commands for the Telegram Menu button (excluding admin)
+    try:
+        public_commands = [
+            BotCommand("start", "🛒 Main Menu / Home"),
+            BotCommand("products", "🛍 Browse Products"),
+            BotCommand("language", "🌐 Change Language"),
+            BotCommand("status", "🔍 Check Status"),
+        ]
+        await application.bot.set_my_commands(public_commands)
+        logger.info("Public Menu button commands set successfully.")
+    except Exception as e:
+        logger.warning(f"Could not set bot commands: {e}")
 
     if application.job_queue:
         application.job_queue.run_repeating(auto_deposit_checker_job, interval=25, first=10)

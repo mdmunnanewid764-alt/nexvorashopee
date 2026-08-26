@@ -58,8 +58,6 @@ async def get_main_menu_keyboard(lang: str = "en", is_admin: bool = False):
             InlineKeyboardButton(t("btn_language", lang), callback_data="user_language_menu")
         ]
     ]
-    if is_admin:
-        keyboard.append([InlineKeyboardButton(t("btn_admin", lang), callback_data="admin_home")])
     return InlineKeyboardMarkup(keyboard)
 
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
