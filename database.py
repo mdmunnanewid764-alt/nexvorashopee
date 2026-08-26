@@ -1,101 +1,146 @@
-import aiosqlite
 import logging
-from config import DATABASE_PATH, BINANCE_API_KEY, CURRENCY_NAME, CURRENCY_SYMBOL, SUPPORT_USERNAME, MIN_DEPOSIT, ORDER_LOG_GROUP_ID
+import asyncio
+from contextlib import asynccontextmanager
+import asyncpg
+from config import (
+    DATABASE_URL,
+    SUPABASE_HOST,
+    SUPABASE_PORT,
+    SUPABASE_USER,
+    SUPABASE_PASS,
+    SUPABASE_DB,
+    BINANCE_API_KEY,
+    CURRENCY_NAME,
+    CURRENCY_SYMBOL,
+    SUPPORT_USERNAME,
+    MIN_DEPOSIT,
+    ORDER_LOG_GROUP_ID
+)
 
 logger = logging.getLogger(__name__)
 
+_pool: asyncpg.Pool = None
+
+async def get_pool() -> asyncpg.Pool:
+    global _pool
+    if _pool is None or _pool._closed:
+        try:
+            _pool = await asyncpg.create_pool(
+                dsn=DATABASE_URL,
+                min_size=1,
+                max_size=15,
+                ssl="require",
+                statement_cache_size=0,
+                command_timeout=60
+            )
+            logger.info("Supabase PostgreSQL pool created via DATABASE_URL.")
+        except Exception as e:
+            logger.warning(f"Could not connect via DATABASE_URL, attempting host parameters: {e}")
+            _pool = await asyncpg.create_pool(
+                host=SUPABASE_HOST,
+                port=SUPABASE_PORT,
+                user=SUPABASE_USER,
+                password=SUPABASE_PASS,
+                database=SUPABASE_DB,
+                min_size=1,
+                max_size=15,
+                ssl="require",
+                statement_cache_size=0,
+                command_timeout=60
+            )
+            logger.info("Supabase PostgreSQL pool created via host parameters.")
+    return _pool
+
+@asynccontextmanager
+async def get_connection():
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        yield conn
+
 async def init_db():
-    async with aiosqlite.connect(DATABASE_PATH) as db:
-        await db.execute("PRAGMA foreign_keys = ON;")
-        
+    """
+    Initializes PostgreSQL tables in Supabase and loads default settings.
+    """
+    async with get_connection() as conn:
         # Users Table
-        await db.execute("""
+        await conn.execute("""
             CREATE TABLE IF NOT EXISTS users (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                telegram_id INTEGER UNIQUE NOT NULL,
+                id SERIAL PRIMARY KEY,
+                telegram_id BIGINT UNIQUE NOT NULL,
                 username TEXT,
                 first_name TEXT,
-                balance REAL DEFAULT 0.0,
-                total_deposited REAL DEFAULT 0.0,
-                total_spent REAL DEFAULT 0.0,
+                balance DOUBLE PRECISION DEFAULT 0.0,
+                total_deposited DOUBLE PRECISION DEFAULT 0.0,
+                total_spent DOUBLE PRECISION DEFAULT 0.0,
                 is_banned INTEGER DEFAULT 0,
                 language TEXT DEFAULT 'en',
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
+                created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+            );
         """)
 
-        # Migration: add language column if missing
-        try:
-            await db.execute("ALTER TABLE users ADD COLUMN language TEXT DEFAULT 'en'")
-        except Exception:
-            pass
-
         # Categories Table
-        await db.execute("""
+        await conn.execute("""
             CREATE TABLE IF NOT EXISTS categories (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                id SERIAL PRIMARY KEY,
                 name TEXT NOT NULL,
                 emoji TEXT DEFAULT '📁',
                 order_index INTEGER DEFAULT 0
-            )
+            );
         """)
 
         # Products Table
-        await db.execute("""
+        await conn.execute("""
             CREATE TABLE IF NOT EXISTS products (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                category_id INTEGER,
+                id SERIAL PRIMARY KEY,
+                category_id INTEGER REFERENCES categories(id) ON DELETE SET NULL,
                 name TEXT NOT NULL,
                 description TEXT,
-                price REAL NOT NULL,
+                price DOUBLE PRECISION NOT NULL,
                 image_url TEXT,
                 delivery_type TEXT DEFAULT 'digital',
                 is_active INTEGER DEFAULT 1,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (category_id) REFERENCES categories (id) ON DELETE SET NULL
-            )
+                created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+            );
         """)
 
         # Digital Stock Table
-        await db.execute("""
+        await conn.execute("""
             CREATE TABLE IF NOT EXISTS product_stock (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                product_id INTEGER NOT NULL,
+                id SERIAL PRIMARY KEY,
+                product_id INTEGER REFERENCES products(id) ON DELETE CASCADE,
                 item_data TEXT NOT NULL,
                 is_sold INTEGER DEFAULT 0,
-                sold_to_user_id INTEGER,
+                sold_to_user_id BIGINT,
                 sold_order_id TEXT,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                sold_at TIMESTAMP,
-                FOREIGN KEY (product_id) REFERENCES products (id) ON DELETE CASCADE
-            )
+                created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+                sold_at TIMESTAMP WITH TIME ZONE
+            );
         """)
 
         # Orders Table
-        await db.execute("""
+        await conn.execute("""
             CREATE TABLE IF NOT EXISTS orders (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                id SERIAL PRIMARY KEY,
                 order_code TEXT UNIQUE NOT NULL,
-                user_id INTEGER NOT NULL,
+                user_id BIGINT NOT NULL,
                 product_id INTEGER,
                 product_name TEXT NOT NULL,
                 quantity INTEGER DEFAULT 1,
-                total_price REAL NOT NULL,
+                total_price DOUBLE PRECISION NOT NULL,
                 delivery_type TEXT DEFAULT 'digital',
                 delivery_data TEXT,
                 status TEXT DEFAULT 'COMPLETED',
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (user_id) REFERENCES users (telegram_id)
-            )
+                created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+            );
         """)
 
         # Deposits Table
-        await db.execute("""
+        await conn.execute("""
             CREATE TABLE IF NOT EXISTS deposits (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                id SERIAL PRIMARY KEY,
                 merchant_trade_no TEXT UNIQUE NOT NULL,
-                user_id INTEGER NOT NULL,
-                order_amount REAL NOT NULL,
+                user_id BIGINT NOT NULL,
+                order_amount DOUBLE PRECISION NOT NULL,
                 currency TEXT DEFAULT 'USDT',
                 status TEXT DEFAULT 'INITIAL',
                 checkout_url TEXT,
@@ -105,18 +150,17 @@ async def init_db():
                 paid_network TEXT,
                 tx_hash TEXT,
                 credited INTEGER DEFAULT 0,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (user_id) REFERENCES users (telegram_id)
-            )
+                created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+                updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+            );
         """)
 
         # Settings Table
-        await db.execute("""
+        await conn.execute("""
             CREATE TABLE IF NOT EXISTS settings (
                 key TEXT PRIMARY KEY,
                 value TEXT NOT NULL
-            )
+            );
         """)
 
         # Default Settings
@@ -133,56 +177,44 @@ async def init_db():
             ("order_log_group_id", str(ORDER_LOG_GROUP_ID))
         ]
         for key, val in default_settings:
-            await db.execute(
-                "INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)",
-                (key, val)
+            await conn.execute(
+                "INSERT INTO settings (key, value) VALUES ($1, $2) ON CONFLICT (key) DO NOTHING",
+                key, str(val)
             )
 
-        await db.commit()
-    logger.info("Database initialized successfully.")
+    logger.info("Supabase PostgreSQL Database initialized successfully.")
 
 
 # --------------------- USER HELPERS ---------------------
 
 async def get_or_create_user(telegram_id: int, username: str = None, first_name: str = None):
-    async with aiosqlite.connect(DATABASE_PATH) as db:
-        db.row_factory = aiosqlite.Row
-        async with db.execute("SELECT * FROM users WHERE telegram_id = ?", (telegram_id,)) as cursor:
-            user = await cursor.fetchone()
-            if user:
-                # Update username or first_name if changed
-                if user["username"] != username or user["first_name"] != first_name:
-                    await db.execute(
-                        "UPDATE users SET username = ?, first_name = ? WHERE telegram_id = ?",
-                        (username, first_name, telegram_id)
-                    )
-                    await db.commit()
-                return dict(user)
-            
-            await db.execute(
-                "INSERT INTO users (telegram_id, username, first_name, balance) VALUES (?, ?, ?, 0.0)",
-                (telegram_id, username, first_name)
-            )
-            await db.commit()
-            
-            async with db.execute("SELECT * FROM users WHERE telegram_id = ?", (telegram_id,)) as cur2:
-                new_user = await cur2.fetchone()
-                return dict(new_user)
+    async with get_connection() as conn:
+        row = await conn.fetchrow("SELECT * FROM users WHERE telegram_id = $1", telegram_id)
+        if row:
+            if row["username"] != username or row["first_name"] != first_name:
+                await conn.execute(
+                    "UPDATE users SET username = $1, first_name = $2 WHERE telegram_id = $3",
+                    username, first_name, telegram_id
+                )
+            return dict(row)
+
+        new_row = await conn.fetchrow("""
+            INSERT INTO users (telegram_id, username, first_name, balance)
+            VALUES ($1, $2, $3, 0.0)
+            RETURNING *
+        """, telegram_id, username, first_name)
+        return dict(new_row)
 
 async def get_user(telegram_id: int):
-    async with aiosqlite.connect(DATABASE_PATH) as db:
-        db.row_factory = aiosqlite.Row
-        async with db.execute("SELECT * FROM users WHERE telegram_id = ?", (telegram_id,)) as cursor:
-            user = await cursor.fetchone()
-            return dict(user) if user else None
+    async with get_connection() as conn:
+        row = await conn.fetchrow("SELECT * FROM users WHERE telegram_id = $1", telegram_id)
+        return dict(row) if row else None
 
 async def get_user_by_username(username: str):
     clean_user = username.replace("@", "").strip()
-    async with aiosqlite.connect(DATABASE_PATH) as db:
-        db.row_factory = aiosqlite.Row
-        async with db.execute("SELECT * FROM users WHERE LOWER(username) = LOWER(?)", (clean_user,)) as cursor:
-            user = await cursor.fetchone()
-            return dict(user) if user else None
+    async with get_connection() as conn:
+        row = await conn.fetchrow("SELECT * FROM users WHERE LOWER(username) = LOWER($1)", clean_user)
+        return dict(row) if row else None
 
 async def get_user_by_id_or_username(identifier: str):
     clean = str(identifier).replace("@", "").strip()
@@ -197,290 +229,257 @@ async def get_user_language(telegram_id: int) -> str:
     return "en"
 
 async def set_user_language(telegram_id: int, language: str) -> bool:
-    async with aiosqlite.connect(DATABASE_PATH) as db:
-        await db.execute("UPDATE users SET language = ? WHERE telegram_id = ?", (language, telegram_id))
-        await db.commit()
+    async with get_connection() as conn:
+        await conn.execute("UPDATE users SET language = $1 WHERE telegram_id = $2", language, telegram_id)
         return True
 
 async def update_user_balance(telegram_id: int, amount: float, is_deposit: bool = False, is_spend: bool = False):
-    async with aiosqlite.connect(DATABASE_PATH) as db:
-        db.row_factory = aiosqlite.Row
-        async with db.execute("SELECT balance, total_deposited, total_spent FROM users WHERE telegram_id = ?", (telegram_id,)) as cursor:
-            user = await cursor.fetchone()
-            if not user:
-                return False
-            
-            new_balance = max(0.0, user["balance"] + amount)
-            new_deposited = user["total_deposited"] + (amount if is_deposit and amount > 0 else 0)
-            new_spent = user["total_spent"] + (abs(amount) if is_spend else 0)
+    async with get_connection() as conn:
+        row = await conn.fetchrow("SELECT balance, total_deposited, total_spent FROM users WHERE telegram_id = $1", telegram_id)
+        if not row:
+            return False
 
-            await db.execute("""
-                UPDATE users 
-                SET balance = ?, total_deposited = ?, total_spent = ? 
-                WHERE telegram_id = ?
-            """, (new_balance, new_deposited, new_spent, telegram_id))
-            await db.commit()
-            return True
+        new_balance = max(0.0, float(row["balance"]) + float(amount))
+        new_deposited = float(row["total_deposited"]) + (float(amount) if is_deposit and amount > 0 else 0.0)
+        new_spent = float(row["total_spent"]) + (abs(float(amount)) if is_spend else 0.0)
+
+        await conn.execute("""
+            UPDATE users 
+            SET balance = $1, total_deposited = $2, total_spent = $3 
+            WHERE telegram_id = $4
+        """, new_balance, new_deposited, new_spent, telegram_id)
+        return True
 
 async def get_all_users(limit: int = 50, offset: int = 0):
-    async with aiosqlite.connect(DATABASE_PATH) as db:
-        db.row_factory = aiosqlite.Row
-        async with db.execute("SELECT * FROM users ORDER BY id DESC LIMIT ? OFFSET ?", (limit, offset)) as cursor:
-            rows = await cursor.fetchall()
-            return [dict(r) for r in rows]
+    async with get_connection() as conn:
+        rows = await conn.fetch("SELECT * FROM users ORDER BY id DESC LIMIT $1 OFFSET $2", limit, offset)
+        return [dict(r) for r in rows]
 
 async def get_total_users_count():
-    async with aiosqlite.connect(DATABASE_PATH) as db:
-        async with db.execute("SELECT COUNT(*) FROM users") as cursor:
-            res = await cursor.fetchone()
-            return res[0] if res else 0
+    async with get_connection() as conn:
+        val = await conn.fetchval("SELECT COUNT(*) FROM users")
+        return val or 0
+
 
 # --------------------- CATEGORY HELPERS ---------------------
 
 async def add_category(name: str, emoji: str = "📁"):
-    async with aiosqlite.connect(DATABASE_PATH) as db:
-        cursor = await db.execute("INSERT INTO categories (name, emoji) VALUES (?, ?)", (name, emoji))
-        await db.commit()
-        return cursor.lastrowid
+    async with get_connection() as conn:
+        return await conn.fetchval("INSERT INTO categories (name, emoji) VALUES ($1, $2) RETURNING id", name, emoji)
 
 async def get_categories():
-    async with aiosqlite.connect(DATABASE_PATH) as db:
-        db.row_factory = aiosqlite.Row
-        async with db.execute("SELECT * FROM categories ORDER BY order_index ASC, id ASC") as cursor:
-            rows = await cursor.fetchall()
-            return [dict(r) for r in rows]
+    async with get_connection() as conn:
+        rows = await conn.fetch("SELECT * FROM categories ORDER BY order_index ASC, id ASC")
+        return [dict(r) for r in rows]
 
 async def get_category(category_id: int):
-    async with aiosqlite.connect(DATABASE_PATH) as db:
-        db.row_factory = aiosqlite.Row
-        async with db.execute("SELECT * FROM categories WHERE id = ?", (category_id,)) as cursor:
-            row = await cursor.fetchone()
-            return dict(row) if row else None
+    async with get_connection() as conn:
+        row = await conn.fetchrow("SELECT * FROM categories WHERE id = $1", category_id)
+        return dict(row) if row else None
 
 async def delete_category(category_id: int):
-    async with aiosqlite.connect(DATABASE_PATH) as db:
-        await db.execute("DELETE FROM categories WHERE id = ?", (category_id,))
-        await db.commit()
+    async with get_connection() as conn:
+        await conn.execute("DELETE FROM categories WHERE id = $1", category_id)
         return True
+
 
 # --------------------- PRODUCT HELPERS ---------------------
 
 async def add_product(category_id: int, name: str, description: str, price: float, image_url: str = None, delivery_type: str = "digital"):
-    async with aiosqlite.connect(DATABASE_PATH) as db:
-        cursor = await db.execute("""
+    async with get_connection() as conn:
+        return await conn.fetchval("""
             INSERT INTO products (category_id, name, description, price, image_url, delivery_type)
-            VALUES (?, ?, ?, ?, ?, ?)
-        """, (category_id, name, description, price, image_url, delivery_type))
-        await db.commit()
-        return cursor.lastrowid
+            VALUES ($1, $2, $3, $4, $5, $6)
+            RETURNING id
+        """, category_id, name, description, float(price), image_url, delivery_type)
 
 async def get_products_by_category(category_id: int):
-    async with aiosqlite.connect(DATABASE_PATH) as db:
-        db.row_factory = aiosqlite.Row
-        async with db.execute("SELECT * FROM products WHERE category_id = ? AND is_active = 1 ORDER BY id ASC", (category_id,)) as cursor:
-            rows = await cursor.fetchall()
-            return [dict(r) for r in rows]
+    async with get_connection() as conn:
+        rows = await conn.fetch("SELECT * FROM products WHERE category_id = $1 AND is_active = 1 ORDER BY id ASC", category_id)
+        return [dict(r) for r in rows]
 
 async def get_all_products(limit: int = 100):
-    async with aiosqlite.connect(DATABASE_PATH) as db:
-        db.row_factory = aiosqlite.Row
-        async with db.execute("""
+    async with get_connection() as conn:
+        rows = await conn.fetch("""
             SELECT p.*, c.name as category_name 
             FROM products p 
             LEFT JOIN categories c ON p.category_id = c.id 
-            ORDER BY p.id DESC LIMIT ?
-        """, (limit,)) as cursor:
-            rows = await cursor.fetchall()
-            return [dict(r) for r in rows]
+            ORDER BY p.id DESC LIMIT $1
+        """, limit)
+        return [dict(r) for r in rows]
 
 async def get_product(product_id: int):
-    async with aiosqlite.connect(DATABASE_PATH) as db:
-        db.row_factory = aiosqlite.Row
-        async with db.execute("""
+    async with get_connection() as conn:
+        row = await conn.fetchrow("""
             SELECT p.*, c.name as category_name 
             FROM products p 
             LEFT JOIN categories c ON p.category_id = c.id 
-            WHERE p.id = ?
-        """, (product_id,)) as cursor:
-            row = await cursor.fetchone()
-            return dict(row) if row else None
+            WHERE p.id = $1
+        """, product_id)
+        return dict(row) if row else None
 
 async def update_product(product_id: int, name: str, description: str, price: float, image_url: str = None, delivery_type: str = "digital"):
-    async with aiosqlite.connect(DATABASE_PATH) as db:
-        await db.execute("""
+    async with get_connection() as conn:
+        await conn.execute("""
             UPDATE products 
-            SET name = ?, description = ?, price = ?, image_url = ?, delivery_type = ?
-            WHERE id = ?
-        """, (name, description, price, image_url, delivery_type, product_id))
-        await db.commit()
+            SET name = $1, description = $2, price = $3, image_url = $4, delivery_type = $5
+            WHERE id = $6
+        """, name, description, float(price), image_url, delivery_type, product_id)
         return True
 
 async def delete_product(product_id: int):
-    async with aiosqlite.connect(DATABASE_PATH) as db:
-        await db.execute("DELETE FROM products WHERE id = ?", (product_id,))
-        await db.commit()
+    async with get_connection() as conn:
+        await conn.execute("DELETE FROM products WHERE id = $1", product_id)
         return True
+
 
 # --------------------- STOCK HELPERS ---------------------
 
 async def add_product_stock_bulk(product_id: int, items: list[str]):
-    async with aiosqlite.connect(DATABASE_PATH) as db:
-        records = [(product_id, item.strip()) for item in items if item.strip()]
-        if not records:
-            return 0
-        await db.executemany("INSERT INTO product_stock (product_id, item_data) VALUES (?, ?)", records)
-        await db.commit()
+    records = [(product_id, item.strip()) for item in items if item.strip()]
+    if not records:
+        return 0
+    async with get_connection() as conn:
+        await conn.executemany("INSERT INTO product_stock (product_id, item_data) VALUES ($1, $2)", records)
         return len(records)
 
 async def get_available_stock_count(product_id: int):
-    async with aiosqlite.connect(DATABASE_PATH) as db:
-        async with db.execute("SELECT COUNT(*) FROM product_stock WHERE product_id = ? AND is_sold = 0", (product_id,)) as cursor:
-            res = await cursor.fetchone()
-            return res[0] if res else 0
+    async with get_connection() as conn:
+        val = await conn.fetchval("SELECT COUNT(*) FROM product_stock WHERE product_id = $1 AND is_sold = 0", product_id)
+        return val or 0
 
 async def take_product_stock(product_id: int, quantity: int, user_id: int, order_code: str):
-    async with aiosqlite.connect(DATABASE_PATH) as db:
-        db.row_factory = aiosqlite.Row
-        async with db.execute("SELECT id, item_data FROM product_stock WHERE product_id = ? AND is_sold = 0 LIMIT ?", (product_id, quantity)) as cursor:
-            rows = await cursor.fetchall()
+    async with get_connection() as conn:
+        async with conn.transaction():
+            rows = await conn.fetch(
+                "SELECT id, item_data FROM product_stock WHERE product_id = $1 AND is_sold = 0 LIMIT $2 FOR UPDATE",
+                product_id, quantity
+            )
             if len(rows) < quantity:
                 return None
-            
+
             ids = [r["id"] for r in rows]
             items = [r["item_data"] for r in rows]
 
-            placeholders = ",".join("?" for _ in ids)
-            await db.execute(f"""
+            await conn.execute("""
                 UPDATE product_stock 
-                SET is_sold = 1, sold_to_user_id = ?, sold_order_id = ?, sold_at = CURRENT_TIMESTAMP 
-                WHERE id IN ({placeholders})
-            """, [user_id, order_code] + ids)
-            await db.commit()
+                SET is_sold = 1, sold_to_user_id = $1, sold_order_id = $2, sold_at = NOW() 
+                WHERE id = ANY($3::int[])
+            """, user_id, order_code, ids)
             return items
+
 
 # --------------------- ORDER HELPERS ---------------------
 
 async def create_order(order_code: str, user_id: int, product_id: int, product_name: str, quantity: int, total_price: float, delivery_type: str, delivery_data: str, status: str = "COMPLETED"):
-    async with aiosqlite.connect(DATABASE_PATH) as db:
-        cursor = await db.execute("""
+    async with get_connection() as conn:
+        return await conn.fetchval("""
             INSERT INTO orders (order_code, user_id, product_id, product_name, quantity, total_price, delivery_type, delivery_data, status)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (order_code, user_id, product_id, product_name, quantity, total_price, delivery_type, delivery_data, status))
-        await db.commit()
-        return cursor.lastrowid
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+            RETURNING id
+        """, order_code, user_id, product_id, product_name, quantity, float(total_price), delivery_type, delivery_data, status)
 
 async def get_user_orders(user_id: int, limit: int = 10):
-    async with aiosqlite.connect(DATABASE_PATH) as db:
-        db.row_factory = aiosqlite.Row
-        async with db.execute("SELECT * FROM orders WHERE user_id = ? ORDER BY id DESC LIMIT ?", (user_id, limit)) as cursor:
-            rows = await cursor.fetchall()
-            return [dict(r) for r in rows]
+    async with get_connection() as conn:
+        rows = await conn.fetch("SELECT * FROM orders WHERE user_id = $1 ORDER BY id DESC LIMIT $2", user_id, limit)
+        return [dict(r) for r in rows]
 
 async def get_order_by_code(order_code: str):
-    async with aiosqlite.connect(DATABASE_PATH) as db:
-        db.row_factory = aiosqlite.Row
-        async with db.execute("SELECT * FROM orders WHERE order_code = ?", (order_code,)) as cursor:
-            row = await cursor.fetchone()
-            return dict(row) if row else None
+    async with get_connection() as conn:
+        row = await conn.fetchrow("SELECT * FROM orders WHERE order_code = $1", order_code)
+        return dict(row) if row else None
 
 async def get_all_orders(limit: int = 50):
-    async with aiosqlite.connect(DATABASE_PATH) as db:
-        db.row_factory = aiosqlite.Row
-        async with db.execute("SELECT * FROM orders ORDER BY id DESC LIMIT ?", (limit,)) as cursor:
-            rows = await cursor.fetchall()
-            return [dict(r) for r in rows]
+    async with get_connection() as conn:
+        rows = await conn.fetch("SELECT * FROM orders ORDER BY id DESC LIMIT $1", limit)
+        return [dict(r) for r in rows]
 
 async def update_order_status(order_code: str, status: str):
-    async with aiosqlite.connect(DATABASE_PATH) as db:
-        await db.execute("UPDATE orders SET status = ? WHERE order_code = ?", (status, order_code))
-        await db.commit()
+    async with get_connection() as conn:
+        await conn.execute("UPDATE orders SET status = $1 WHERE order_code = $2", status, order_code)
         return True
 
 async def update_order_delivery_data(order_code: str, delivery_data: str, status: str = None):
-    async with aiosqlite.connect(DATABASE_PATH) as db:
+    async with get_connection() as conn:
         if status:
-            await db.execute("UPDATE orders SET delivery_data = ?, status = ? WHERE order_code = ?", (delivery_data, status, order_code))
+            await conn.execute("UPDATE orders SET delivery_data = $1, status = $2 WHERE order_code = $3", delivery_data, status, order_code)
         else:
-            await db.execute("UPDATE orders SET delivery_data = ? WHERE order_code = ?", (delivery_data, order_code))
-        await db.commit()
+            await conn.execute("UPDATE orders SET delivery_data = $1 WHERE order_code = $2", delivery_data, order_code)
         return True
+
 
 # --------------------- DEPOSIT HELPERS ---------------------
 
 async def save_deposit(merchant_trade_no: str, user_id: int, order_amount: float, currency: str, checkout_url: str, bep20_addr: str, trc20_addr: str, erc20_addr: str, status: str = "INITIAL"):
-    async with aiosqlite.connect(DATABASE_PATH) as db:
-        cursor = await db.execute("""
+    async with get_connection() as conn:
+        return await conn.fetchval("""
             INSERT INTO deposits (merchant_trade_no, user_id, order_amount, currency, checkout_url, bep20_addr, trc20_addr, erc20_addr, status)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (merchant_trade_no, user_id, order_amount, currency, checkout_url, bep20_addr, trc20_addr, erc20_addr, status))
-        await db.commit()
-        return cursor.lastrowid
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+            RETURNING id
+        """, merchant_trade_no, user_id, float(order_amount), currency, checkout_url, bep20_addr, trc20_addr, erc20_addr, status)
 
 async def get_deposit(merchant_trade_no: str):
-    async with aiosqlite.connect(DATABASE_PATH) as db:
-        db.row_factory = aiosqlite.Row
-        async with db.execute("SELECT * FROM deposits WHERE merchant_trade_no = ?", (merchant_trade_no,)) as cursor:
-            row = await cursor.fetchone()
-            return dict(row) if row else None
+    async with get_connection() as conn:
+        row = await conn.fetchrow("SELECT * FROM deposits WHERE merchant_trade_no = $1", merchant_trade_no)
+        return dict(row) if row else None
 
 async def get_pending_deposits(limit: int = 50):
-    async with aiosqlite.connect(DATABASE_PATH) as db:
-        db.row_factory = aiosqlite.Row
-        async with db.execute("SELECT * FROM deposits WHERE status = 'INITIAL' AND credited = 0 ORDER BY id DESC LIMIT ?", (limit,)) as cursor:
-            rows = await cursor.fetchall()
-            return [dict(r) for r in rows]
+    async with get_connection() as conn:
+        rows = await conn.fetch("SELECT * FROM deposits WHERE status = 'INITIAL' AND credited = 0 ORDER BY id DESC LIMIT $1", limit)
+        return [dict(r) for r in rows]
 
 async def mark_deposit_paid(merchant_trade_no: str, paid_network: str = None, tx_hash: str = None):
-    async with aiosqlite.connect(DATABASE_PATH) as db:
-        await db.execute("""
+    async with get_connection() as conn:
+        await conn.execute("""
             UPDATE deposits 
-            SET status = 'PAID', credited = 1, paid_network = ?, tx_hash = ?, updated_at = CURRENT_TIMESTAMP 
-            WHERE merchant_trade_no = ?
-        """, (paid_network, tx_hash, merchant_trade_no))
-        await db.commit()
+            SET status = 'PAID', credited = 1, paid_network = $1, tx_hash = $2, updated_at = NOW() 
+            WHERE merchant_trade_no = $3
+        """, paid_network, tx_hash, merchant_trade_no)
         return True
 
 async def update_deposit_tx_hash(merchant_trade_no: str, tx_hash: str, network: str):
-    async with aiosqlite.connect(DATABASE_PATH) as db:
-        await db.execute("""
+    async with get_connection() as conn:
+        await conn.execute("""
             UPDATE deposits 
-            SET tx_hash = ?, paid_network = ?, updated_at = CURRENT_TIMESTAMP 
-            WHERE merchant_trade_no = ?
-        """, (tx_hash, network, merchant_trade_no))
-        await db.commit()
+            SET tx_hash = $1, paid_network = $2, updated_at = NOW() 
+            WHERE merchant_trade_no = $3
+        """, tx_hash, network, merchant_trade_no)
         return True
+
 
 # --------------------- SETTINGS HELPERS ---------------------
 
 async def get_setting(key: str, default: str = None):
-    async with aiosqlite.connect(DATABASE_PATH) as db:
-        async with db.execute("SELECT value FROM settings WHERE key = ?", (key,)) as cursor:
-            row = await cursor.fetchone()
-            return row[0] if row else default
+    async with get_connection() as conn:
+        val = await conn.fetchval("SELECT value FROM settings WHERE key = $1", key)
+        return val if val is not None else default
 
 async def set_setting(key: str, value: str):
-    async with aiosqlite.connect(DATABASE_PATH) as db:
-        await db.execute("INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)", (key, value))
-        await db.commit()
+    async with get_connection() as conn:
+        await conn.execute("""
+            INSERT INTO settings (key, value)
+            VALUES ($1, $2)
+            ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value
+        """, key, str(value))
         return True
+
 
 # --------------------- STATS HELPERS ---------------------
 
 async def get_bot_stats():
-    async with aiosqlite.connect(DATABASE_PATH) as db:
-        async with db.execute("SELECT COUNT(*) FROM users") as c:
-            total_users = (await c.fetchone())[0]
-        async with db.execute("SELECT COUNT(*), COALESCE(SUM(total_price), 0) FROM orders WHERE status = 'COMPLETED'") as c:
-            r = await c.fetchone()
-            total_orders, total_sales = r[0], r[1]
-        async with db.execute("SELECT COUNT(*), COALESCE(SUM(order_amount), 0) FROM deposits WHERE status = 'PAID'") as c:
-            r = await c.fetchone()
-            total_deposits, total_deposited_amount = r[0], r[1]
-        async with db.execute("SELECT COUNT(*) FROM products WHERE is_active = 1") as c:
-            total_products = (await c.fetchone())[0]
-        async with db.execute("SELECT COUNT(*) FROM product_stock WHERE is_sold = 0") as c:
-            total_stock = (await c.fetchone())[0]
-            
+    async with get_connection() as conn:
+        total_users = await conn.fetchval("SELECT COUNT(*) FROM users") or 0
+        r_orders = await conn.fetchrow("SELECT COUNT(*), COALESCE(SUM(total_price), 0) FROM orders WHERE status = 'COMPLETED'")
+        total_orders = r_orders[0] if r_orders else 0
+        total_sales = float(r_orders[1]) if r_orders else 0.0
+        
+        r_deposits = await conn.fetchrow("SELECT COUNT(*), COALESCE(SUM(order_amount), 0) FROM deposits WHERE status = 'PAID'")
+        total_deposits = r_deposits[0] if r_deposits else 0
+        total_deposited_amount = float(r_deposits[1]) if r_deposits else 0.0
+
+        total_products = await conn.fetchval("SELECT COUNT(*) FROM products WHERE is_active = 1") or 0
+        total_stock = await conn.fetchval("SELECT COUNT(*) FROM product_stock WHERE is_sold = 0") or 0
+
         return {
             "total_users": total_users,
             "total_orders": total_orders,
