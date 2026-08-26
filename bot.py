@@ -237,6 +237,13 @@ def main():
     ))
 
     app.add_handler(ConversationHandler(
+        entry_points=[CallbackQueryHandler(admin_h.start_adm_promo_confirm, pattern="^adm_promo_confirm_")],
+        states={admin_h.ADMIN_PROMO_CONFIRM_LINK: [MessageHandler(filters.TEXT & ~filters.COMMAND, admin_h.handle_adm_promo_link_input)]},
+        fallbacks=[CallbackQueryHandler(admin_h.cancel_adm_promo_confirm, pattern="^adm_cancel_promo_")],
+        per_message=False
+    ))
+
+    app.add_handler(ConversationHandler(
         entry_points=[CallbackQueryHandler(admin_h.start_edit_promo_price, pattern="^adm_edit_promo_price_start$")],
         states={admin_h.EDIT_PROMO_PRICE: [MessageHandler(filters.TEXT & ~filters.COMMAND, admin_h.handle_edit_promo_price_input)]},
         fallbacks=[CallbackQueryHandler(admin_h.admin_promo_menu, pattern="^adm_promo_menu$")],
@@ -323,7 +330,7 @@ def main():
     app.add_handler(CallbackQueryHandler(admin_h.admin_panel, pattern="^admin_home$"))
     app.add_handler(CallbackQueryHandler(admin_h.admin_promo_menu, pattern="^adm_promo_menu$"))
     app.add_handler(CallbackQueryHandler(admin_h.admin_toggle_promo, pattern="^adm_toggle_promo$"))
-    app.add_handler(CallbackQueryHandler(admin_h.handle_adm_promo_confirm, pattern="^adm_promo_confirm_"))
+    app.add_handler(CallbackQueryHandler(admin_h.cancel_adm_promo_confirm, pattern="^adm_cancel_promo_"))
     app.add_handler(CallbackQueryHandler(admin_h.handle_adm_promo_refund, pattern="^adm_promo_refund_"))
     app.add_handler(CallbackQueryHandler(admin_h.admin_cat_menu, pattern="^adm_cat_menu$"))
     app.add_handler(CallbackQueryHandler(admin_h.handle_del_category, pattern="^adm_del_cat_"))

@@ -34,7 +34,7 @@ STRINGS = {
         "chatgpt_promo_ask_email": "🤖 <b>ChatGPT 3-Month Promo Offer Activation</b>\n\n💵 Price: <code>{symbol}{price:.2f}</code>\n\n📧 <b>Please reply with your Gmail / Email address:</b>\n<i>(We will activate the 3-month subscription on this email)</i>",
         "chatgpt_promo_invalid_email": "❌ <b>Invalid Email Address!</b>\n\n⚠️ Please enter a valid Gmail / Email address (e.g. <code>example@gmail.com</code>):",
         "chatgpt_promo_order_submitted": "✅ <b>ChatGPT Promo Order Submitted!</b>\n\n📦 <b>Offer:</b> <code>ChatGPT 3-Month Promo</code>\n🔖 <b>Order Code:</b> <code>{code}</code>\n📧 <b>Target Gmail/Email:</b> <code>{email}</code>\n💰 <b>Paid:</b> <code>{symbol}{price:.2f}</code>\n\n⏳ <i>Our admin team is processing your activation on your email. You will receive an instant notification once activated (or automatic refund if cancelled).</i>",
-        "chatgpt_promo_activated_user": "🎉 <b>ChatGPT 3-Month Subscription Activated!</b>\n\n🔖 <b>Order:</b> <code>{code}</code>\n📧 <b>Email:</b> <code>{email}</code>\n\n✨ <i>Your ChatGPT 3-Month subscription has been successfully activated by Admin! Enjoy your service.</i>",
+        "chatgpt_promo_activated_user": "🎉 <b>ChatGPT 3-Month Subscription Activated!</b>\n\n🔖 <b>Order:</b> <code>{code}</code>\n📧 <b>Target Email:</b> <code>{email}</code>\n\n🎁 <b>Your Promo Code / Activation Link:</b>\n<code>{link}</code>\n\n✨ <i>Your ChatGPT 3-Month subscription has been successfully activated by Admin! Enjoy your service.</i>",
         "chatgpt_promo_refunded_user": "❌ <b>ChatGPT Promo Order Cancelled & Refunded</b>\n\n🔖 <b>Order:</b> <code>{code}</code>\n💰 <b>Refunded Amount:</b> <code>{symbol}{price:.2f}</code>\n\n💡 <i>The full amount has been refunded back to your wallet balance.</i>",
 
         # Shop / Catalog
@@ -85,7 +85,7 @@ STRINGS = {
         
         # TxHash Validation
         "submit_tx_select_net": "⚡ <b>Submit On-Chain TxHash Verification</b>\n\n🔖 Invoice ID: <code>{code}</code>\n\n👇 Select the blockchain network you transferred on:",
-        "submit_tx_prompt": "⚡ <b>Submit TxHash ({network})</b>\n\n🔖 Invoice: <code>{code}</code>\n🌐 Network: <code>{network}</code>\n\n📌 <b>How to get your TxHash:</b>\n1. Open your Binance App or Crypto Wallet -> <b>Withdrawal History</b>.\n2. Tap the transfer and copy the <b>TxID / TxHash</b> (64 or 66 character code).\n3. Send the copied code here.\n\n💡 <i>(Example: <code>0x78ab9c456...</code> or <code>a1b2c3d4e5f6...</code>)</i>",
+        "submit_tx_prompt": "⚡ <b>Submit TxHash ({network})</b>\n\n🔖 Invoice: <code>{code}</code>\n🌐 Network: <code>{network}</code>\n\n📌 <b>How to get your TxHash:</b>\n1. Open your Binance App or Crypto Wallet -> <b>Withdrawal History</b>.\n2. Tap the transfer and copy the <b>TxID / TxHash</b> (64 or 66 character code).\n3. Send the copied code here.\n\n💡 <i>(Example: <code>0x78ab9c456...</code>)</i>",
         "fake_tx_hash_warn": "❌ <b>Invalid or Fake Transaction Hash (TxHash)!</b>\n\n⚠️ The text you provided: <code>{hash}</code> is not a valid blockchain transaction hash.\n\n📌 <b>How to find genuine TxHash:</b>\n• Go to your Binance / Wallet <b>Withdrawal History</b>.\n• Click on the transaction and copy the <b>TxID</b>.\n\n👉 Please reply with the genuine 64/66 character TxHash (or Cancel):",
         "tx_submitted_success": "✅ <b>TxHash Submitted Successfully!</b>\n\n🔖 <b>Invoice:</b> <code>{code}</code>\n🌐 <b>Network:</b> <code>{network}</code>\n🔗 <b>TxHash:</b> <code>{hash}</code>\n\n⏳ <i>The system is verifying your blockchain transaction. Your balance will be credited automatically once confirmed.</i>",
         "tx_verification_failed": "⚠️ <b>Transaction Verification Failed!</b>\n\n❌ <b>Reason:</b> <i>{reason}</i>\n\n💡 <b>Tips:</b>\n1. If you just sent the transaction, please wait 1-2 minutes for blockchain confirmations.\n2. Ensure you sent to the correct address on the <code>{network}</code> network.\n3. Click 'Check Payment Status' after a few moments.",
@@ -124,7 +124,7 @@ STRINGS = {
         "chatgpt_promo_ask_email": "🤖 <b>ChatGPT ৩-মাসের প্রোমো এক্টিভেশন</b>\n\n💵 অফার মূল্য: <code>{symbol}{price:.2f}</code>\n\n📧 <b>আপনার Gmail / Email এড্রেসটি লিখে পাঠান:</b>\n<i>(এই ইমেইলে আপনার ৩ মাসের সাবস্ক্রিপশন এক্টিভ করা হবে)</i>",
         "chatgpt_promo_invalid_email": "❌ <b>ভুল ইমেইল এড্রেস!</b>\n\n⚠️ অনুগ্রহ করে একটি সঠিক Gmail / Email এড্রেস লিখুন (যেমন: <code>example@gmail.com</code>):",
         "chatgpt_promo_order_submitted": "✅ <b>ChatGPT প্রোমো অর্ডার সফলভাবে জমা হয়েছে!</b>\n\n📦 <b>অফার:</b> <code>ChatGPT 3-Month Promo</code>\n🔖 <b>অর্ডার কোড:</b> <code>{code}</code>\n📧 <b>ইমেইল এড্রেস:</b> <code>{email}</code>\n💰 <b>পরিশোধিত মূল্য:</b> <code>{symbol}{price:.2f}</code>\n\n⏳ <i>এডমিন টিম আপনার ইমেইলে সাবস্ক্রিপশন একটিভ করছে। এক্টিভ হলে নোটিফিকেশন পাবেন (বা কোনো কারণে বাতিল হলে স্বয়ংক্রিয় রিফান্ড পেয়ে যাবেন)।</i>",
-        "chatgpt_promo_activated_user": "🎉 <b>ChatGPT ৩-মাসের সাবস্ক্রিপশন একটিভ হয়েছে!</b>\n\n🔖 <b>অর্ডার কোড:</b> <code>{code}</code>\n📧 <b>ইমেইল:</b> <code>{email}</code>\n\n✨ <i>এডমিন আপনার ইমেইলে ChatGPT ৩ মাসের প্রোমো সফলভাবে একটিভ করে দিয়েছে!</i>",
+        "chatgpt_promo_activated_user": "🎉 <b>ChatGPT ৩-মাসের সাবস্ক্রিপশন একটিভ হয়েছে!</b>\n\n🔖 <b>অর্ডার কোড:</b> <code>{code}</code>\n📧 <b>ইমেইল এড্রেস:</b> <code>{email}</code>\n\n🎁 <b>আপনার প্রোমো কোড / এক্টিভেশন লিংক:</b>\n<code>{link}</code>\n\n✨ <i>এডমিন আপনার একাউন্টে ChatGPT ৩ মাসের প্রোমো সফলভাবে ডেলিভারি করেছে!</i>",
         "chatgpt_promo_refunded_user": "❌ <b>ChatGPT প্রোমো অর্ডার বাতিল ও রিফান্ড করা হয়েছে</b>\n\n🔖 <b>অর্ডার কোড:</b> <code>{code}</code>\n💰 <b>রিফান্ডকৃত টাকা:</b> <code>{symbol}{price:.2f}</code>\n\n💡 <i>সম্পূর্ণ টাকা আপনার ওয়ালেট ব্যালেন্সে ফেরত দেওয়া হয়েছে।</i>",
 
         # Shop / Catalog
@@ -211,7 +211,7 @@ STRINGS = {
         "chatgpt_promo_ask_email": "🤖 <b>ChatGPT 3-Month پرومو ایکٹیویشن</b>\n\n💵 قیمت: <code>{symbol}{price:.2f}</code>\n\n📧 <b>براہ کرم اپنا Gmail / Email ایڈریس بھیجیں:</b>\n<i>(ہم اس ای میل پر 3 ماہ کی سبسکرپشن فعال کریں گے)</i>",
         "chatgpt_promo_invalid_email": "❌ <b>غلط ای میل ایڈریس!</b>\n\n⚠️ براہ کرم درست ای میل درج کریں (مثال: <code>example@gmail.com</code>):",
         "chatgpt_promo_order_submitted": "✅ <b>ChatGPT پرومو آرڈر جمع ہو گیا!</b>\n\n📦 <b>آفر:</b> <code>ChatGPT 3-Month Promo</code>\n🔖 <b>آرڈر کوڈ:</b> <code>{code}</code>\n📧 <b>ای میل:</b> <code>{email}</code>\n💰 <b>ادا شدہ رقم:</b> <code>{symbol}{price:.2f}</code>\n\n⏳ <i>ایڈمن آپ کے ای میل پر کارروائی کر رہا ہے۔ ایکٹیویشن پر آپ کو مطلع کر دیا جائے گا (منسوخ ہونے پر فوری ریفنڈ)۔</i>",
-        "chatgpt_promo_activated_user": "🎉 <b>ChatGPT 3-Month سبسکرپشن فعال ہو گئی!</b>\n\n🔖 <b>آرڈر:</b> <code>{code}</code>\n📧 <b>ای میل:</b> <code>{email}</code>\n\n✨ <i>ایڈمن نے آپ کے ای میل پر ChatGPT 3 ماہ کا پرومو کامیابی سے فعال کر دیا ہے۔</i>",
+        "chatgpt_promo_activated_user": "🎉 <b>ChatGPT 3-Month سبسکرپشن فعال ہو گئی!</b>\n\n🔖 <b>آرڈر:</b> <code>{code}</code>\n📧 <b>ای میل:</b> <code>{email}</code>\n\n🎁 <b>آپ کا پرومو کوڈ / لنک:</b>\n<code>{link}</code>\n\n✨ <i>ایڈمن نے آپ کے لیے ChatGPT 3 ماہ کا پرومو کامیابی سے فعال کر دیا ہے۔</i>",
         "chatgpt_promo_refunded_user": "❌ <b>ChatGPT آرڈر منسوخ اور رقم واپس!</b>\n\n🔖 <b>آرڈر:</b> <code>{code}</code>\n💰 <b>واپس کردہ رقم:</b> <code>{symbol}{price:.2f}</code>\n\n💡 <i>پوری رقم آپ کے والٹ بیلنس میں واپس جمع کر دی گئی ہے۔</i>",
 
         # Shop / Catalog
@@ -297,7 +297,7 @@ STRINGS = {
         "chatgpt_promo_ask_email": "🤖 <b>فعال‌سازی آفر ۳ ماهه ChatGPT</b>\n\n💵 قیمت: <code>{symbol}{price:.2f}</code>\n\n📧 <b>لطفاً آدرس Gmail / Email خود را ارسال فرمایید:</b>\n<i>(اشتراک ۳ ماهه روی این ایمیل فعال خواهد شد)</i>",
         "chatgpt_promo_invalid_email": "❌ <b>ایمیل نامعتبر است!</b>\n\n⚠️ لطفاً یک ایمیل صحیح وارد فرمایید (مثال: <code>example@gmail.com</code>):",
         "chatgpt_promo_order_submitted": "✅ <b>سفارش آفر ChatGPT ثبت شد!</b>\n\n📦 <b>آفر:</b> <code>ChatGPT 3-Month Promo</code>\n🔖 <b>کد سفارش:</b> <code>{code}</code>\n📧 <b>ایمیل ارسالی:</b> <code>{email}</code>\n💰 <b>مبلغ پرداختی:</b> <code>{symbol}{price:.2f}</code>\n\n⏳ <i>تیم مدیریت در حال فعال‌سازی اشتراک روی ایمیل شما است. پس از انجام یا لغو پیام دریافت خواهید کرد.</i>",
-        "chatgpt_promo_activated_user": "🎉 <b>اشتراک ۳ ماهه ChatGPT فعال شد!</b>\n\n🔖 <b>کد سفارش:</b> <code>{code}</code>\n📧 <b>ایمیل:</b> <code>{email}</code>\n\n✨ <i>اشتراک ۳ ماهه چت‌جی‌پی‌تی توسط ادمین با موفقیت فعال شد. لذت ببرید!</i>",
+        "chatgpt_promo_activated_user": "🎉 <b>اشتراک ۳ ماهه ChatGPT فعال شد!</b>\n\n🔖 <b>کد سفارش:</b> <code>{code}</code>\n📧 <b>ایمیل:</b> <code>{email}</code>\n\n🎁 <b>کد تبلیغاتی / لینک فعال‌سازی:</b>\n<code>{link}</code>\n\n✨ <i>اشتراک ۳ ماهه چت‌جی‌پی‌تی با موفقیت فعال شد.</i>",
         "chatgpt_promo_refunded_user": "❌ <b>سفارش ChatGPT لغو و مبلغ بازگردانده شد</b>\n\n🔖 <b>کد سفارش:</b> <code>{code}</code>\n💰 <b>مبلغ عودت داده شده:</b> <code>{symbol}{price:.2f}</code>\n\n💡 <i>مبلغ به موجودی کیف پول شما بازگشت داده شد.</i>",
 
         # Shop / Catalog
@@ -383,7 +383,7 @@ STRINGS = {
         "chatgpt_promo_ask_email": "🤖 <b>تفعيل عرض ChatGPT لمدة 3 أشهر</b>\n\n💵 السعر: <code>{symbol}{price:.2f}</code>\n\n📧 <b>يرجى إرسال بريدك الإلكتروني (Gmail / Email):</b>\n<i>(سيتم تفعيل الاشتراك لمدة 3 أشهر على هذا البريد)</i>",
         "chatgpt_promo_invalid_email": "❌ <b>بريد إلكتروني غير صالح!</b>\n\n⚠️ يرجى إدخال بريد إلكتروني صحيح (مثال: <code>example@gmail.com</code>):",
         "chatgpt_promo_order_submitted": "✅ <b>تم إرسال طلب عرض ChatGPT بنجاح!</b>\n\n📦 <b>العرض:</b> <code>ChatGPT 3-Month Promo</code>\n🔖 <b>رقم الطلب:</b> <code>{code}</code>\n📧 <b>البريد:</b> <code>{email}</code>\n💰 <b>المبلغ المدفوع:</b> <code>{symbol}{price:.2f}</code>\n\n⏳ <i>فريق الإدارة يقوم بتفعيل الاشتراك على بريدك الإلكتروني. ستصلك رسالة فور التفعيل (أو استرجاع المبلغ تلقائياً في حال الإلغاء).</i>",
-        "chatgpt_promo_activated_user": "🎉 <b>تم تفعيل اشتراك ChatGPT لمدة 3 أشهر!</b>\n\n🔖 <b>رقم الطلب:</b> <code>{code}</code>\n📧 <b>البريد:</b> <code>{email}</code>\n\n✨ <i>تم تفعيل اشتراكك بنجاح من قبل المسؤول. استمتع بالخدمة!</i>",
+        "chatgpt_promo_activated_user": "🎉 <b>تم تفعيل اشتراك ChatGPT لمدة 3 أشهر!</b>\n\n🔖 <b>رقم الطلب:</b> <code>{code}</code>\n📧 <b>البريد:</b> <code>{email}</code>\n\n🎁 <b>كود الخصم / رابط التفعيل:</b>\n<code>{link}</code>\n\n✨ <i>تم تفعيل اشتراكك بنجاح من قبل المسؤول. استمتع بالخدمة!</i>",
         "chatgpt_promo_refunded_user": "❌ <b>تم إلغاء طلب ChatGPT واسترجاع المبلغ</b>\n\n🔖 <b>رقم الطلب:</b> <code>{code}</code>\n💰 <b>المبلغ المسترجع:</b> <code>{symbol}{price:.2f}</code>\n\n💡 <i>تمت إعادة كامل المبلغ إلى رصيد محفظتك.</i>",
 
         # Shop / Catalog

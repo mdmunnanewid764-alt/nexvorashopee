@@ -395,6 +395,15 @@ async def update_order_status(order_code: str, status: str):
         await db.commit()
         return True
 
+async def update_order_delivery_data(order_code: str, delivery_data: str, status: str = None):
+    async with aiosqlite.connect(DATABASE_PATH) as db:
+        if status:
+            await db.execute("UPDATE orders SET delivery_data = ?, status = ? WHERE order_code = ?", (delivery_data, status, order_code))
+        else:
+            await db.execute("UPDATE orders SET delivery_data = ? WHERE order_code = ?", (delivery_data, order_code))
+        await db.commit()
+        return True
+
 # --------------------- DEPOSIT HELPERS ---------------------
 
 async def save_deposit(merchant_trade_no: str, user_id: int, order_amount: float, currency: str, checkout_url: str, bep20_addr: str, trc20_addr: str, erc20_addr: str, status: str = "INITIAL"):

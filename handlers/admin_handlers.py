@@ -19,8 +19,9 @@ logger = logging.getLogger(__name__)
     ADMIN_USER_SEARCH, ADMIN_USER_BALANCE_ADJ,
     ADMIN_BROADCAST_MSG,
     SETTING_EDIT_KEY,
-    EDIT_PROMO_PRICE
-) = range(17)
+    EDIT_PROMO_PRICE,
+    ADMIN_PROMO_CONFIRM_LINK
+) = range(18)
 
 def escape(text: str) -> str:
     return html.escape(str(text) if text is not None else "")
@@ -166,54 +167,74 @@ async def handle_edit_promo_price_input(update: Update, context: ContextTypes.DE
 
 # -------------------- PROMO ORDER CONFIRM & REFUND ACTIONS --------------------
 
-async def handle_adm_promo_confirm(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def start_adm_promo_confirm(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     if not is_admin(query.from_user.id):
         await query.answer("⛔ Unauthorized.", show_alert=True)
-        return
+        return ConversationHandler.END
 
     order_code = query.data.replace("adm_promo_confirm_", "")
     order = await database.get_order_by_code(order_code)
 
     if not order:
         await query.answer("⚠️ Order not found.", show_alert=True)
-        return
+        return ConversationHandler.END
 
     if order["status"] == "COMPLETED":
         await query.answer("✅ This order is already confirmed & completed!", show_alert=True)
-        return
+        return ConversationHandler.END
 
     if order["status"] == "CANCELLED_REFUNDED":
         await query.answer("❌ This order was already cancelled and refunded.", show_alert=True)
-        return
+        return ConversationHandler.END
 
-    # Mark as completed
-    await database.update_order_status(order_code, "COMPLETED")
-    await query.answer("✅ Order confirmed & completed!", show_alert=True)
+    await query.answer()
+    context.user_data["confirm_promo_order_code"] = order_code
 
-    # Update admin message
-    currency = await database.get_setting("currency_symbol", "$")
-    updated_admin_text = (
-        f"✅ <b>ChatGPT Promo Order Completed & Activated!</b>\n"
-        f"━━━━━━━━━━━━━━━━━━━━\n"
+    user_email = order.get("delivery_data", "N/A")
+    prompt_text = (
+        f"🔗 <b>ChatGPT 3-Month Promo Activation</b>\n\n"
         f"🔖 <b>Order Code:</b> <code>{order_code}</code>\n"
         f"👤 <b>Buyer ID:</b> <code>{order['user_id']}</code>\n"
-        f"📧 <b>Email:</b> <code>{escape(order['delivery_data'])}</code>\n"
-        f"💰 <b>Amount:</b> <code>{currency}{order['total_price']:.2f}</code>\n"
-        f"📊 <b>Status:</b> <code>COMPLETED (ACTIVATED)</code>"
+        f"📧 <b>Target Email:</b> <code>{escape(user_email)}</code>\n\n"
+        f"👉 <b>Please send / reply with the Promo Code / Activation Link / Credentials:</b>\n"
+        f"<i>(The user will automatically receive this link/code in their Telegram chat)</i>"
     )
-    try:
-        await query.edit_message_text(updated_admin_text, parse_mode=ParseMode.HTML)
-    except Exception:
-        pass
+    keyboard = InlineKeyboardMarkup([
+        [InlineKeyboardButton("❌ Cancel", callback_data=f"adm_cancel_promo_{order_code}")]
+    ])
+    await query.edit_message_text(prompt_text, reply_markup=keyboard, parse_mode=ParseMode.HTML)
+    return ADMIN_PROMO_CONFIRM_LINK
 
-    # Notify User in their language
+async def handle_adm_promo_link_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    promo_link = update.message.text.strip()
+    order_code = context.user_data.get("confirm_promo_order_code")
+
+    if not order_code:
+        await update.message.reply_text("Session expired. Please click the button on the order alert again.")
+        return ConversationHandler.END
+
+    order = await database.get_order_by_code(order_code)
+    if not order:
+        await update.message.reply_text("⚠️ Order not found.")
+        return ConversationHandler.END
+
+    user_email = order.get("delivery_data", "N/A")
+
+    # Update database
+    new_delivery_data = f"Target Email: {user_email}\nPromo Code / Link: {promo_link}"
+    await database.update_order_delivery_data(order_code, new_delivery_data, status="COMPLETED")
+
+    currency = await database.get_setting("currency_symbol", "$")
+
+    # Notify User in their chosen language with the promo link!
     try:
         user_lang = await database.get_user_language(order["user_id"])
         user_msg = t(
             "chatgpt_promo_activated_user", user_lang,
             code=order_code,
-            email=escape(order['delivery_data'])
+            email=escape(user_email),
+            link=escape(promo_link)
         )
         user_keyboard = InlineKeyboardMarkup([
             [InlineKeyboardButton(t("btn_orders", user_lang), callback_data="user_orders"), InlineKeyboardButton(t("btn_back_main", user_lang), callback_data="user_menu")]
@@ -226,6 +247,51 @@ async def handle_adm_promo_confirm(update: Update, context: ContextTypes.DEFAULT
         )
     except Exception as e:
         logger.warning(f"Failed to notify user of activation: {e}")
+
+    # Send Success confirmation to Admin
+    admin_success = (
+        f"✅ <b>ChatGPT Promo Order Confirmed & Delivered!</b>\n\n"
+        f"🔖 <b>Order Code:</b> <code>{order_code}</code>\n"
+        f"👤 <b>Buyer ID:</b> <code>{order['user_id']}</code>\n"
+        f"📧 <b>Target Email:</b> <code>{escape(user_email)}</code>\n"
+        f"💰 <b>Amount:</b> <code>{currency}{order['total_price']:.2f}</code>\n\n"
+        f"🎁 <b>Delivered Link / Code:</b>\n"
+        f"<code>{escape(promo_link)}</code>\n\n"
+        f"✨ <i>The buyer has automatically received the promo link in their chat!</i>"
+    )
+    await update.message.reply_text(admin_success, parse_mode=ParseMode.HTML)
+
+    context.user_data.pop("confirm_promo_order_code", None)
+    return ConversationHandler.END
+
+async def cancel_adm_promo_confirm(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer("Activation cancelled.")
+    order_code = query.data.replace("adm_cancel_promo_", "")
+    order = await database.get_order_by_code(order_code)
+    currency = await database.get_setting("currency_symbol", "$")
+
+    if order:
+        user_email = order.get("delivery_data", "N/A")
+        text = (
+            f"🚨 <b>ChatGPT 3-Month Promo Order</b>\n\n"
+            f"👤 <b>Buyer ID:</b> <code>{order['user_id']}</code>\n"
+            f"🏷 <b>Offer:</b> <code>ChatGPT 3-Month Promo</code>\n"
+            f"📧 <b>Target Email:</b> <code>{escape(user_email)}</code>\n"
+            f"💵 <b>Price Paid:</b> <code>{currency}{order['total_price']:.2f}</code>\n"
+            f"🔖 <b>Order Code:</b> <code>{order_code}</code>\n\n"
+            f"👇 <i>Admin Action: Confirm activation or Cancel with refund:</i>"
+        )
+        admin_keyboard = InlineKeyboardMarkup([
+            [
+                InlineKeyboardButton("✅ Confirm & Activate", callback_data=f"adm_promo_confirm_{order_code}"),
+                InlineKeyboardButton("❌ Cancel & Refund", callback_data=f"adm_promo_refund_{order_code}")
+            ]
+        ])
+        await query.edit_message_text(text, reply_markup=admin_keyboard, parse_mode=ParseMode.HTML)
+
+    context.user_data.pop("confirm_promo_order_code", None)
+    return ConversationHandler.END
 
 async def handle_adm_promo_refund(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
