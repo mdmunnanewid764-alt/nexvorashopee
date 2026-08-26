@@ -671,6 +671,15 @@ async def update_deposit_tx_hash(merchant_trade_no: str, tx_hash: str, network: 
         """, tx_hash, network, merchant_trade_no)
         return True
 
+async def update_deposit_network(merchant_trade_no: str, network: str):
+    async with get_connection() as conn:
+        await conn.execute("""
+            UPDATE deposits 
+            SET paid_network = $1, updated_at = NOW() 
+            WHERE merchant_trade_no = $2
+        """, network, merchant_trade_no)
+        return True
+
 
 # --------------------- SETTINGS HELPERS ---------------------
 

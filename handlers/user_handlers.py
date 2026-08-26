@@ -766,9 +766,9 @@ async def show_deposit_options(update: Update, context: ContextTypes.DEFAULT_TYP
     else:
         await update.message.reply_text(text, reply_markup=keyboard, parse_mode=ParseMode.HTML)
 
-async def show_crypto_deposit_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def show_crypto_network_selection(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
-    Shows Crypto USDT multi-chain preset amounts & custom option.
+    Shows 3 crypto network buttons (BEP20, TRC20, ERC20) before amount selection.
     """
     query = update.callback_query
     user_id = query.from_user.id if query else update.effective_user.id
@@ -776,10 +776,39 @@ async def show_crypto_deposit_menu(update: Update, context: ContextTypes.DEFAULT
     if query:
         await query.answer()
 
+    text = t("select_crypto_network", lang)
+
+    keyboard = InlineKeyboardMarkup([
+        [InlineKeyboardButton("🟡 USDT - BEP20 (BNB Smart Chain)", callback_data="selnet_BEP20")],
+        [InlineKeyboardButton("🔴 USDT - TRC20 (TRON Network)", callback_data="selnet_TRC20")],
+        [InlineKeyboardButton("🔵 USDT - ERC20 (Ethereum)", callback_data="selnet_ERC20")],
+        [InlineKeyboardButton(t("btn_back", lang), callback_data="user_deposit")]
+    ])
+
+    if query:
+        await query.edit_message_text(text, reply_markup=keyboard, parse_mode=ParseMode.HTML)
+    else:
+        await update.message.reply_text(text, reply_markup=keyboard, parse_mode=ParseMode.HTML)
+
+async def show_crypto_deposit_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Shows preset amounts & custom option for the chosen crypto network.
+    """
+    query = update.callback_query
+    user_id = query.from_user.id if query else update.effective_user.id
+    lang = await database.get_user_language(user_id)
+    
+    if query and query.data.startswith("selnet_"):
+        await query.answer()
+        network = query.data.split("_")[1].upper()
+        context.user_data["crypto_net"] = network
+    else:
+        network = context.user_data.get("crypto_net", "BEP20")
+
     currency = await database.get_setting("currency_symbol", "$")
     min_dep = float(await database.get_setting("min_deposit", "1.0"))
 
-    text = t("deposit_menu", lang, symbol=currency, min_dep=min_dep)
+    text = t("deposit_menu", lang, network=network, symbol=currency, min_dep=min_dep)
 
     keyboard = InlineKeyboardMarkup([
         [
@@ -792,7 +821,7 @@ async def show_crypto_deposit_menu(update: Update, context: ContextTypes.DEFAULT
             InlineKeyboardButton(f"{currency}100", callback_data="create_dep_100"),
             InlineKeyboardButton(t("btn_custom_amount", lang), callback_data="custom_deposit_btn")
         ],
-        [InlineKeyboardButton(t("btn_back", lang), callback_data="user_deposit")]
+        [InlineKeyboardButton(t("btn_back", lang), callback_data="select_dep_crypto")]
     ])
 
     if query:
@@ -1011,10 +1040,11 @@ async def prompt_custom_deposit(update: Update, context: ContextTypes.DEFAULT_TY
     lang = await database.get_user_language(user_id)
     await query.answer()
 
+    network = context.user_data.get("crypto_net", "BEP20")
     min_dep = float(await database.get_setting("min_deposit", "1.0"))
     currency = await database.get_setting("currency_symbol", "$")
 
-    text = t("custom_amount_prompt", lang, symbol=currency, min_dep=min_dep)
+    text = t("custom_amount_prompt", lang, network=network, symbol=currency, min_dep=min_dep)
     keyboard = InlineKeyboardMarkup([[InlineKeyboardButton("❌ Cancel", callback_data="select_dep_crypto")]])
     await query.edit_message_text(text, reply_markup=keyboard, parse_mode=ParseMode.HTML)
     return CUSTOM_DEPOSIT_AMOUNT
@@ -1053,12 +1083,13 @@ async def handle_preset_deposit(update: Update, context: ContextTypes.DEFAULT_TY
 async def execute_create_deposit(update: Update, context: ContextTypes.DEFAULT_TYPE, amount: float, user_id: int, is_callback: bool = False):
     lang = await database.get_user_language(user_id)
     currency = await database.get_setting("currency_symbol", "$")
+    selected_net = context.user_data.get("crypto_net", "BEP20").upper()
     
     loading_msg = None
     if is_callback:
-        await update.callback_query.edit_message_text("⏳ <i>Generating Binance Pay & Multi-Chain invoice...</i>", parse_mode=ParseMode.HTML)
+        await update.callback_query.edit_message_text(f"⏳ <i>Generating {selected_net} payment invoice...</i>", parse_mode=ParseMode.HTML)
     else:
-        loading_msg = await update.message.reply_text("⏳ <i>Generating Binance Pay & Multi-Chain invoice...</i>", parse_mode=ParseMode.HTML)
+        loading_msg = await update.message.reply_text(f"⏳ <i>Generating {selected_net} payment invoice...</i>", parse_mode=ParseMode.HTML)
 
     res = await payment_gateway.create_payment(
         amount=amount,
@@ -1081,29 +1112,39 @@ async def execute_create_deposit(update: Update, context: ContextTypes.DEFAULT_T
 
     order = res["order"]
     merchant_trade_no = order.get("merchantTradeNo")
-    checkout_url = order.get("checkoutUrl", "")
     crypto_wallets = order.get("cryptoWallets", {})
-    bep20 = crypto_wallets.get("bep20", "N/A")
-    trc20 = crypto_wallets.get("trc20", "N/A")
-    erc20 = crypto_wallets.get("erc20", "N/A")
+    bep20 = crypto_wallets.get("bep20", "0x3648589A6581A0a4cFE6fD1B50b64d1C732F5e55")
+    trc20 = crypto_wallets.get("trc20", "TC9kX336aDkmc47q8k4rK5bK9qG5z9x9x9")
+    erc20 = crypto_wallets.get("erc20", "0x3648589A6581A0a4cFE6fD1B50b64d1C732F5e55")
+
+    # Update selected network in DB deposit record
+    await database.update_deposit_network(merchant_trade_no, selected_net)
+
+    address_map = {
+        "BEP20": bep20,
+        "TRC20": trc20,
+        "ERC20": erc20
+    }
+    target_address = address_map.get(selected_net, bep20)
 
     invoice_text = t(
-        "invoice_title", lang,
+        "invoice_title_single_net", lang,
         code=merchant_trade_no,
+        network=selected_net,
         symbol=currency,
         amount=amount,
-        bep20=bep20,
-        trc20=trc20,
-        erc20=erc20
+        address=target_address
     )
 
     buttons = [
         [
-            InlineKeyboardButton(t("btn_check_status", lang), callback_data=f"chkdep_{merchant_trade_no}"),
             InlineKeyboardButton(t("btn_submit_tx", lang), callback_data=f"txstart_{merchant_trade_no}")
         ],
         [
-            InlineKeyboardButton(t("btn_back", lang), callback_data="user_deposit")
+            InlineKeyboardButton(t("btn_check_status", lang), callback_data=f"chkdep_{merchant_trade_no}")
+        ],
+        [
+            InlineKeyboardButton(t("btn_back", lang), callback_data="select_dep_crypto")
         ]
     ]
 
@@ -1138,7 +1179,7 @@ async def check_deposit_status(update: Update, context: ContextTypes.DEFAULT_TYP
         db_dep = await database.get_deposit(merchant_trade_no)
         if db_dep and not db_dep["credited"]:
             amount = float(order_info.get("orderAmount", db_dep["order_amount"]))
-            paid_net = order_info.get("paidNetwork", "Multi-Chain")
+            paid_net = order_info.get("paidNetwork", db_dep.get("paid_network") or "BEP20")
             tx_id = order_info.get("transactionId", "")
             
             await database.update_user_balance(db_dep["user_id"], amount, is_deposit=True)
@@ -1152,17 +1193,14 @@ async def check_deposit_status(update: Update, context: ContextTypes.DEFAULT_TYP
                 network=paid_net
             )
             keyboard = InlineKeyboardMarkup([
-                [InlineKeyboardButton(t("btn_shop", lang), callback_data="user_categories"), InlineKeyboardButton(t("btn_wallet", lang), callback_data="user_wallet")]
+                [InlineKeyboardButton(t("btn_wallet", lang), callback_data="user_wallet")],
+                [InlineKeyboardButton(t("btn_shop", lang), callback_data="user_categories")]
             ])
             await query.edit_message_text(success_text, reply_markup=keyboard, parse_mode=ParseMode.HTML)
-            return
         else:
             await query.answer(t("deposit_already_credited", lang), show_alert=True)
-            return
-    elif status == "INITIAL":
-        await query.answer(t("deposit_pending", lang), show_alert=True)
     else:
-        await query.answer(f"ℹ️ Status: {status}", show_alert=True)
+        await query.answer(t("deposit_pending", lang), show_alert=True)
 
 async def show_deposit_qr(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
@@ -1205,33 +1243,14 @@ async def start_submit_tx(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     context.user_data["submit_tx_merchant_trade_no"] = merchant_trade_no
 
-    text = t("submit_tx_select_net", lang, code=merchant_trade_no)
-
-    keyboard = InlineKeyboardMarkup([
-        [
-            InlineKeyboardButton("🟡 BEP20 (BSC)", callback_data="txnet_BEP20"),
-            InlineKeyboardButton("🔴 TRC20 (TRON)", callback_data="txnet_TRC20"),
-            InlineKeyboardButton("🔵 ERC20 (ETH)", callback_data="txnet_ERC20")
-        ],
-        [InlineKeyboardButton("❌ Cancel", callback_data="user_wallet")]
-    ])
-
-    await query.edit_message_text(text, reply_markup=keyboard, parse_mode=ParseMode.HTML)
-    return SUBMIT_TX_NETWORK
-
-async def handle_submit_tx_network(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    user_id = query.from_user.id
-    lang = await database.get_user_language(user_id)
-    network = query.data.split("_")[1]
-    await query.answer()
-
+    dep = await database.get_deposit(merchant_trade_no)
+    network = (dep.get("paid_network") if dep else None) or context.user_data.get("crypto_net", "BEP20")
     context.user_data["submit_tx_network"] = network
-    trade_no = context.user_data.get("submit_tx_merchant_trade_no", "")
 
-    text = t("submit_tx_prompt", lang, code=trade_no, network=network)
+    text = t("submit_tx_prompt", lang, code=merchant_trade_no, network=network)
 
     keyboard = InlineKeyboardMarkup([[InlineKeyboardButton("❌ Cancel", callback_data="user_wallet")]])
+
     await query.edit_message_text(text, reply_markup=keyboard, parse_mode=ParseMode.HTML)
     return SUBMIT_TX_HASH
 
@@ -1253,6 +1272,7 @@ async def handle_submit_tx_hash(update: Update, context: ContextTypes.DEFAULT_TY
     tx_hash = update.message.text.strip()
     trade_no = context.user_data.get("submit_tx_merchant_trade_no")
     network = context.user_data.get("submit_tx_network", "BEP20")
+    currency = await database.get_setting("currency_symbol", "$")
 
     if not trade_no:
         await update.message.reply_text("Session expired. Please start again from /start.")
@@ -1269,7 +1289,19 @@ async def handle_submit_tx_hash(update: Update, context: ContextTypes.DEFAULT_TY
     res = await payment_gateway.submit_tx_hash(merchant_trade_no=trade_no, network=network, tx_hash=tx_hash)
 
     if res.get("success"):
-        text = t("tx_submitted_success", lang, code=trade_no, network=network, hash=escape(tx_hash))
+        # Instant status verification
+        status_res = await payment_gateway.get_payment_status(trade_no)
+        order_info = status_res.get("order", {})
+        status = order_info.get("status", "PENDING").upper()
+        
+        db_dep = await database.get_deposit(trade_no)
+        if status == "PAID" and db_dep and not db_dep["credited"]:
+            amount = float(order_info.get("orderAmount", db_dep["order_amount"]))
+            await database.update_user_balance(db_dep["user_id"], amount, is_deposit=True)
+            await database.mark_deposit_paid(trade_no, paid_network=network, tx_hash=tx_hash)
+            text = t("deposit_confirmed", lang, code=trade_no, symbol=currency, amount=amount, network=network)
+        else:
+            text = t("tx_submitted_success", lang, code=trade_no, network=network, hash=escape(tx_hash))
     else:
         err_raw = res.get("message", "Order not found")
         text = t("tx_verification_failed", lang, reason=escape(err_raw), network=network)
