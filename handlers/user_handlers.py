@@ -1,16 +1,13 @@
 import logging
 import time
 import html
-import os
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo, KeyboardButton, ReplyKeyboardMarkup, ReplyKeyboardRemove
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardRemove
 from telegram.ext import ContextTypes, ConversationHandler
 from telegram.constants import ParseMode
 import database
 from payment_service import payment_gateway, generate_qr_image
 from config import ADMIN_ID
 from locales import t, LANGUAGES
-
-RENDER_URL = os.environ.get("RENDER_EXTERNAL_URL", "")
 
 logger = logging.getLogger(__name__)
 
@@ -97,38 +94,12 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 parse_mode=ParseMode.HTML
             )
     else:
-        # Build WebApp URL with user balance info for dynamic display
-        webapp_url = None
-        if RENDER_URL:
-            promo_enabled = await database.get_setting("chatgpt_promo_enabled", "1")
-            admin_flag = "1" if is_admin else "0"
-            webapp_url = (
-                f"{RENDER_URL}/app"
-                f"?balance={db_user['balance']:.2f}"
-                f"&symbol={currency}"
-                f"&promo={promo_enabled}"
-                f"&admin={admin_flag}"
-            )
-
-        # Send the welcome text with inline keyboard
+        # Send welcome message with clean inline keyboard
         await update.message.reply_text(
             welcome_text,
             reply_markup=keyboard,
             parse_mode=ParseMode.HTML
         )
-
-        # Also send a persistent Reply Keyboard with the colorful Mini App button
-        if webapp_url:
-            reply_kb = ReplyKeyboardMarkup(
-                [[KeyboardButton("🎨 Open Colorful Menu", web_app=WebAppInfo(url=webapp_url))]],
-                resize_keyboard=True,
-                is_persistent=True
-            )
-            await update.message.reply_text(
-                "👆 <i>Tap the button below for the full colorful menu experience!</i>",
-                reply_markup=reply_kb,
-                parse_mode=ParseMode.HTML
-            )
 
 
 # -------------------- CHATGPT PROMO OFFER FLOW --------------------

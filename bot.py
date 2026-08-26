@@ -129,20 +129,10 @@ async def status_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE):
     logger.error(msg="Exception while handling an update:", exc_info=context.error)
 
-# -------------------- WEB SERVER (HEALTH CHECK + WEBAPP SERVING) --------------------
+# -------------------- HEALTH CHECK WEB SERVER (FOR RENDER FREE TIER) --------------------
 
 async def health_check_handler(request):
     return web.json_response({"status": "ok", "bot": "Nexvora Telegram Bot Live"})
-
-async def webapp_handler(request):
-    """Serve the Telegram Mini App HTML page with dynamic user data."""
-    import os
-    webapp_path = os.path.join(os.path.dirname(__file__), "webapp", "index.html")
-    if os.path.exists(webapp_path):
-        with open(webapp_path, "r", encoding="utf-8") as f:
-            content = f.read()
-        return web.Response(text=content, content_type="text/html")
-    return web.Response(text="<h1>WebApp not found</h1>", content_type="text/html", status=404)
 
 async def start_web_server():
     port = int(os.environ.get("PORT", 0))
@@ -150,12 +140,11 @@ async def start_web_server():
         web_app = web.Application()
         web_app.router.add_get("/", health_check_handler)
         web_app.router.add_get("/health", health_check_handler)
-        web_app.router.add_get("/app", webapp_handler)
         runner = web.AppRunner(web_app)
         await runner.setup()
         site = web.TCPSite(runner, "0.0.0.0", port)
         await site.start()
-        logger.info(f"Web server started on port {port} — WebApp available at /app")
+        logger.info(f"Health check web server started on port {port}")
 
 async def post_init(application: Application):
     await database.init_db()
@@ -163,46 +152,6 @@ async def post_init(application: Application):
     if application.job_queue:
         application.job_queue.run_repeating(auto_deposit_checker_job, interval=25, first=10)
         logger.info("Auto-deposit background poller job scheduled.")
-
-async def handle_webapp_data(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """
-    Receives action data from the Telegram Mini App (colorful button panel)
-    and routes it to the appropriate bot handler.
-    """
-    import json
-    try:
-        data = json.loads(update.effective_message.web_app_data.data)
-        action = data.get("action", "")
-        logger.info(f"WebApp action received: {action} from user {update.effective_user.id}")
-
-        # Route to the correct handler by simulating a callback query response
-        action_map = {
-            "user_categories":     user_h.show_categories,
-            "user_wallet":         user_h.show_wallet,
-            "user_orders":         user_h.show_orders,
-            "user_profile":        user_h.show_profile,
-            "user_support":        user_h.show_support,
-            "user_language_menu":  user_h.show_language_menu,
-            "user_chatgpt_promo":  user_h.show_chatgpt_promo,
-            "user_menu":           user_h.start_command,
-            "adm_add_product":     admin_h.start_add_product,
-            "adm_stock_menu":      admin_h.admin_stock_menu,
-            "adm_list_products":   admin_h.admin_list_products,
-            "adm_promo_menu":      admin_h.admin_promo_menu,
-            "adm_cat_menu":        admin_h.admin_cat_menu,
-            "adm_users_menu":      admin_h.admin_users_menu,
-            "adm_broadcast_start": admin_h.start_broadcast,
-            "adm_settings":        admin_h.admin_settings_menu,
-        }
-
-        handler_fn = action_map.get(action)
-        if handler_fn:
-            await handler_fn(update, context)
-        else:
-            await update.message.reply_text(f"⚠️ Unknown action: {action}")
-    except Exception as e:
-        logger.warning(f"WebApp data error: {e}")
-        await update.message.reply_text("⚠️ Could not process mini app action. Please try again.")
 
 # -------------------- MAIN APP SETUP --------------------
 
@@ -232,9 +181,6 @@ def main():
     app.add_handler(CommandHandler("lang", user_h.show_language_menu))
     app.add_handler(CommandHandler("status", status_command))
     app.add_handler(CommandHandler("admin", admin_h.admin_panel))
-
-    # WebApp Mini App data handler (receives action from colorful menu)
-    app.add_handler(MessageHandler(filters.StatusUpdate.WEB_APP_DATA, handle_webapp_data))
 
     # Conversation Handlers
     app.add_handler(ConversationHandler(
