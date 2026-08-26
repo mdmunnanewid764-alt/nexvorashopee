@@ -1156,9 +1156,16 @@ async def handle_edit_setting_val(update: Update, context: ContextTypes.DEFAULT_
         return ConversationHandler.END
 
     await database.set_setting(setting_key, new_val)
+    
+    keyboard = [
+        [InlineKeyboardButton("⚙️ Settings Menu", callback_data="adm_settings")],
+        [InlineKeyboardButton("💳 Payment Gateways", callback_data="adm_methods_menu")],
+        [InlineKeyboardButton("🛠 Admin Panel", callback_data="admin_home")]
+    ]
     await update.message.reply_text(
-        f"✅ Setting <code>{setting_key}</code> updated to: <code>{escape(new_val)}</code>",
-        reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("⚙️ Settings Menu", callback_data="adm_settings")]])
+        f"✅ <b>Successfully Updated!</b>\n\n<code>{setting_key}</code> updated to:\n<code>{escape(new_val)}</code>",
+        reply_markup=InlineKeyboardMarkup(keyboard),
+        parse_mode=ParseMode.HTML
     )
     context.user_data.pop("editing_setting_key", None)
     return ConversationHandler.END
@@ -1336,6 +1343,36 @@ async def admin_manage_single_method(update: Update, context: ContextTypes.DEFAU
         return await admin_methods_menu(update, context)
 
     status_str = "🟢 Active (Visible to Users)" if method.get("is_active") == 1 else "🔴 Disabled (Hidden from Users)"
+    toggle_btn_text = "🔴 Disable Gateway" if method.get("is_active") == 1 else "🟢 Enable Gateway"
+
+    if method.get("method_type") == "crypto_auto":
+        bep20_addr = await database.get_setting("bep20_address", "0xb6944a334e57b50be1b854c5e7e0a55b5754383e")
+        trc20_addr = await database.get_setting("trc20_address", "TYasdf123456789TronUSDTAddress9988")
+        erc20_addr = await database.get_setting("erc20_address", "0x386Ac338C488F61a9B4810fe17Fa2a78BE456108")
+
+        text = (
+            f"🪙 <b>Manage Crypto Receiving Addresses</b>\n"
+            f"━━━━━━━━━━━━━━━━━━━━\n"
+            f"📊 <b>Status:</b> {status_str}\n\n"
+            f"🟡 <b>BEP20 (BNB Smart Chain):</b>\n<code>{escape(bep20_addr)}</code>\n\n"
+            f"🔴 <b>TRC20 (TRON Network):</b>\n<code>{escape(trc20_addr)}</code>\n\n"
+            f"🔵 <b>ERC20 (Ethereum Network):</b>\n<code>{escape(erc20_addr)}</code>\n"
+            f"━━━━━━━━━━━━━━━━━━━━\n"
+            f"👇 <i>Tap any network button below to edit or change its deposit address:</i>"
+        )
+
+        buttons = [
+            [InlineKeyboardButton(toggle_btn_text, callback_data=f"adm_toggle_meth_{method_id}")],
+            [
+                InlineKeyboardButton("🟡 Edit BEP20 Address", callback_data="editset_bep20_address"),
+                InlineKeyboardButton("🔴 Edit TRC20 Address", callback_data="editset_trc20_address")
+            ],
+            [
+                InlineKeyboardButton("🔵 Edit ERC20 Address", callback_data="editset_erc20_address")
+            ],
+            [InlineKeyboardButton("🔙 Back to Gateways", callback_data="adm_methods_menu")]
+        ]
+        return await query.edit_message_text(text, reply_markup=InlineKeyboardMarkup(buttons), parse_mode=ParseMode.HTML)
 
     text = (
         f"💳 <b>Manage Gateway: {escape(method.get('name'))}</b>\n"
@@ -1349,8 +1386,6 @@ async def admin_manage_single_method(update: Update, context: ContextTypes.DEFAU
         f"━━━━━━━━━━━━━━━━━━━━\n"
         f"👇 <i>Select an action to modify:</i>"
     )
-
-    toggle_btn_text = "🔴 Disable Gateway" if method.get("is_active") == 1 else "🟢 Enable Gateway"
 
     buttons = [
         [InlineKeyboardButton(toggle_btn_text, callback_data=f"adm_toggle_meth_{method_id}")],
