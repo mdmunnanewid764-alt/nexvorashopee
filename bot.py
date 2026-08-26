@@ -181,8 +181,16 @@ def main():
     app.add_handler(CommandHandler("lang", user_h.show_language_menu))
     app.add_handler(CommandHandler("status", status_command))
     app.add_handler(CommandHandler("admin", admin_h.admin_panel))
+    app.add_handler(CommandHandler("addbalance", admin_h.add_balance_cmd))
+    app.add_handler(CommandHandler("deductbalance", admin_h.deduct_balance_cmd))
 
     # Conversation Handlers
+    app.add_handler(ConversationHandler(
+        entry_points=[CallbackQueryHandler(admin_h.start_custom_balance_adjust, pattern="^adm_custom_bal_")],
+        states={admin_h.ADMIN_USER_BALANCE_ADJ: [MessageHandler(filters.TEXT & ~filters.COMMAND, admin_h.handle_custom_balance_input)]},
+        fallbacks=[CallbackQueryHandler(admin_h.admin_users_menu, pattern="^adm_users_menu$")],
+        per_message=False
+    ))
     app.add_handler(ConversationHandler(
         entry_points=[CallbackQueryHandler(user_h.prompt_custom_deposit, pattern="^custom_deposit_btn$")],
         states={user_h.CUSTOM_DEPOSIT_AMOUNT: [MessageHandler(filters.TEXT & ~filters.COMMAND, user_h.process_custom_deposit_input)]},

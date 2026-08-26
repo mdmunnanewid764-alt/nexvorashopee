@@ -175,6 +175,20 @@ async def get_user(telegram_id: int):
             user = await cursor.fetchone()
             return dict(user) if user else None
 
+async def get_user_by_username(username: str):
+    clean_user = username.replace("@", "").strip()
+    async with aiosqlite.connect(DATABASE_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute("SELECT * FROM users WHERE LOWER(username) = LOWER(?)", (clean_user,)) as cursor:
+            user = await cursor.fetchone()
+            return dict(user) if user else None
+
+async def get_user_by_id_or_username(identifier: str):
+    clean = str(identifier).replace("@", "").strip()
+    if clean.isdigit():
+        return await get_user(int(clean))
+    return await get_user_by_username(clean)
+
 async def get_user_language(telegram_id: int) -> str:
     user = await get_user(telegram_id)
     if user and user.get("language"):

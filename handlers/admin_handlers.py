@@ -671,51 +671,65 @@ async def prompt_search_user(update: Update, context: ContextTypes.DEFAULT_TYPE)
     )
     return ADMIN_USER_SEARCH
 
-async def handle_user_search_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query_text = update.message.text.replace("@", "").strip()
-    currency = await database.get_setting("currency_symbol", "$")
-
-    user = None
-    if query_text.isdigit():
-        user = await database.get_user(int(query_text))
-    else:
-        user = await database.get_user_by_username(query_text)
-
-    if not user:
-        await update.message.reply_text(
-            f"❌ User not found with ID/Username: <code>{escape(query_text)}</code>",
-            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔍 Try Again", callback_data="adm_search_user_btn")]])
-        )
-        return ConversationHandler.END
-
+def build_user_card(user: dict, currency: str) -> tuple[str, InlineKeyboardMarkup]:
     lang = user.get("language", "en")
     lang_info = LANGUAGES.get(lang, LANGUAGES["en"])
     user_info = (
-        f"👤 <b>User Details</b>\n\n"
+        f"👤 <b>User Management Card</b>\n\n"
         f"🆔 <b>Telegram ID:</b> <code>{user['telegram_id']}</code>\n"
         f"👤 <b>Name:</b> {escape(user.get('first_name', 'N/A'))}\n"
         f"🏷 <b>Username:</b> @{escape(user.get('username', 'N/A'))}\n"
         f"🌐 <b>Language:</b> {lang_info['flag']} {lang_info['name']}\n"
-        f"💰 <b>Balance:</b> <code>{currency}{user['balance']:.2f}</code>\n"
-        f"📥 <b>Deposited:</b> <code>{currency}{user['total_deposited']:.2f}</code>\n"
-        f"🛒 <b>Spent:</b> <code>{currency}{user['total_spent']:.2f}</code>\n"
-        f"📅 <b>Joined:</b> <code>{user.get('created_at', 'N/A')}</code>"
+        f"💰 <b>Wallet Balance:</b> <code>{currency}{user['balance']:.2f}</code>\n"
+        f"📥 <b>Total Deposited:</b> <code>{currency}{user['total_deposited']:.2f}</code>\n"
+        f"🛒 <b>Total Spent:</b> <code>{currency}{user['total_spent']:.2f}</code>\n"
+        f"📅 <b>Joined:</b> <code>{user.get('created_at', 'N/A')}</code>\n\n"
+        f"👇 <i>Choose a preset or enter a custom amount to Add (+) or Deduct (-):</i>"
     )
 
+    uid = user["telegram_id"]
     keyboard = InlineKeyboardMarkup([
         [
-            InlineKeyboardButton(f"➕ Add {currency}5", callback_data=f"adm_adj_bal_{user['telegram_id']}_5"),
-            InlineKeyboardButton(f"➕ Add {currency}10", callback_data=f"adm_adj_bal_{user['telegram_id']}_10"),
-            InlineKeyboardButton(f"➕ Add {currency}25", callback_data=f"adm_adj_bal_{user['telegram_id']}_25")
+            InlineKeyboardButton(f"➕ {currency}5", callback_data=f"adm_adj_bal_{uid}_5"),
+            InlineKeyboardButton(f"➕ {currency}10", callback_data=f"adm_adj_bal_{uid}_10"),
+            InlineKeyboardButton(f"➕ {currency}25", callback_data=f"adm_adj_bal_{uid}_25"),
+            InlineKeyboardButton(f"➕ {currency}50", callback_data=f"adm_adj_bal_{uid}_50")
         ],
         [
-            InlineKeyboardButton(f"➖ Deduct {currency}5", callback_data=f"adm_adj_bal_{user['telegram_id']}_-5"),
-            InlineKeyboardButton(f"➖ Deduct {currency}10", callback_data=f"adm_adj_bal_{user['telegram_id']}_-10")
+            InlineKeyboardButton(f"➖ {currency}5", callback_data=f"adm_adj_bal_{uid}_-5"),
+            InlineKeyboardButton(f"➖ {currency}10", callback_data=f"adm_adj_bal_{uid}_-10"),
+            InlineKeyboardButton(f"➖ {currency}25", callback_data=f"adm_adj_bal_{uid}_-25"),
+            InlineKeyboardButton(f"➖ {currency}50", callback_data=f"adm_adj_bal_{uid}_-50")
         ],
-        [InlineKeyboardButton("👥 Back to Users", callback_data="adm_users_menu")]
+        [
+            InlineKeyboardButton("✏️ Custom Amount (+ / -)", callback_data=f"adm_custom_bal_{uid}")
+        ],
+        [
+            InlineKeyboardButton("🔍 Search Another User", callback_data="adm_search_user_btn"),
+            InlineKeyboardButton("👥 Users Menu", callback_data="adm_users_menu")
+        ]
     ])
+    return user_info, keyboard
 
-    await update.message.reply_text(user_info, reply_markup=keyboard, parse_mode=ParseMode.HTML)
+async def handle_user_search_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query_text = update.message.text.replace("@", "").strip()
+    currency = await database.get_setting("currency_symbol", "$")
+
+    user = await database.get_user_by_id_or_username(query_text)
+
+    if not user:
+        await update.message.reply_text(
+            f"❌ <b>User Not Found!</b>\n\nNo user account found matching ID or Username: <code>{escape(query_text)}</code>\n<i>(Note: User must have started the bot at least once)</i>",
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("🔍 Try Again", callback_data="adm_search_user_btn")],
+                [InlineKeyboardButton("👥 Back to Users", callback_data="adm_users_menu")]
+            ]),
+            parse_mode=ParseMode.HTML
+        )
+        return ConversationHandler.END
+
+    text, keyboard = build_user_card(user, currency)
+    await update.message.reply_text(text, reply_markup=keyboard, parse_mode=ParseMode.HTML)
     return ConversationHandler.END
 
 async def handle_balance_adjust(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -726,20 +740,195 @@ async def handle_balance_adjust(update: Update, context: ContextTypes.DEFAULT_TY
     currency = await database.get_setting("currency_symbol", "$")
 
     await database.update_user_balance(user_id, amount, is_deposit=(amount > 0))
-    await query.answer(f"Balance adjusted by {currency}{amount:.2f}!", show_alert=True)
+    action_word = "Added" if amount > 0 else "Deducted"
+    await query.answer(f"✅ Successfully {action_word} {currency}{abs(amount):.2f}!", show_alert=True)
 
-    # Notify User
+    # Notify User in their language
     try:
         user_lang = await database.get_user_language(user_id)
         if amount > 0:
-            notif = f"🎁 <b>Admin Bonus / Balance Added!</b>\n\n<code>+{currency}{amount:.2f}</code> has been added to your wallet balance."
+            notif = f"🎁 <b>Balance Added by Admin!</b>\n\n<code>+{currency}{amount:.2f}</code> has been added to your wallet balance."
         else:
-            notif = f"⚠️ <b>Admin Balance Adjustment:</b>\n\n<code>{currency}{amount:.2f}</code> was deducted from your wallet."
+            notif = f"⚠️ <b>Balance Adjustment by Admin:</b>\n\n<code>-{currency}{abs(amount):.2f}</code> was deducted from your wallet balance."
         await context.bot.send_message(chat_id=user_id, text=notif, parse_mode=ParseMode.HTML)
     except Exception:
         pass
 
-    await admin_users_menu(update, context)
+    # Refresh user card in-place
+    user = await database.get_user(user_id)
+    if user:
+        text, keyboard = build_user_card(user, currency)
+        try:
+            await query.edit_message_text(text, reply_markup=keyboard, parse_mode=ParseMode.HTML)
+        except Exception:
+            pass
+
+async def start_custom_balance_adjust(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    user_id = int(query.data.split("_")[3])
+    context.user_data["target_bal_user_id"] = user_id
+
+    user = await database.get_user(user_id)
+    currency = await database.get_setting("currency_symbol", "$")
+    first_name = user.get("first_name", "User") if user else "User"
+    current_bal = user["balance"] if user else 0.0
+
+    prompt = (
+        f"✏️ <b>Adjust Balance for {escape(first_name)}</b> (ID: <code>{user_id}</code>)\n\n"
+        f"💰 <b>Current Balance:</b> <code>{currency}{current_bal:.2f}</code>\n\n"
+        f"📌 <b>Enter Amount to Add or Deduct:</b>\n"
+        f"• To Add balance: enter a positive number (e.g. <code>25</code> or <code>50.50</code>)\n"
+        f"• To Deduct balance: enter a negative number (e.g. <code>-15</code> or <code>-30.00</code>)"
+    )
+    keyboard = InlineKeyboardMarkup([[InlineKeyboardButton("❌ Cancel", callback_data="adm_users_menu")]])
+    await query.edit_message_text(prompt, reply_markup=keyboard, parse_mode=ParseMode.HTML)
+    return ADMIN_USER_BALANCE_ADJ
+
+async def handle_custom_balance_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    text = update.message.text.replace("$", "").replace("+", "").strip()
+    user_id = context.user_data.get("target_bal_user_id")
+    currency = await database.get_setting("currency_symbol", "$")
+
+    if not user_id:
+        await update.message.reply_text("Session expired. Please search for user again from /admin.")
+        return ConversationHandler.END
+
+    try:
+        amount = float(text)
+    except ValueError:
+        await update.message.reply_text(
+            "❌ <b>Invalid Input!</b>\nPlease enter a valid number (e.g. <code>25</code> to add, or <code>-10</code> to deduct):",
+            parse_mode=ParseMode.HTML
+        )
+        return ADMIN_USER_BALANCE_ADJ
+
+    await database.update_user_balance(user_id, amount, is_deposit=(amount > 0))
+    action_word = "Added" if amount > 0 else "Deducted"
+
+    # Notify User in their language
+    try:
+        user_lang = await database.get_user_language(user_id)
+        if amount > 0:
+            notif = f"🎁 <b>Balance Added by Admin!</b>\n\n<code>+{currency}{amount:.2f}</code> has been added to your wallet balance."
+        else:
+            notif = f"⚠️ <b>Balance Adjustment by Admin:</b>\n\n<code>-{currency}{abs(amount):.2f}</code> was deducted from your wallet balance."
+        await context.bot.send_message(chat_id=user_id, text=notif, parse_mode=ParseMode.HTML)
+    except Exception:
+        pass
+
+    user = await database.get_user(user_id)
+    success_msg = f"✅ <b>Successfully {action_word} {currency}{abs(amount):.2f}!</b>\n\n"
+    if user:
+        card_text, keyboard = build_user_card(user, currency)
+        await update.message.reply_text(success_msg + card_text, reply_markup=keyboard, parse_mode=ParseMode.HTML)
+    else:
+        await update.message.reply_text(success_msg, reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("👥 Users Menu", callback_data="adm_users_menu")]]), parse_mode=ParseMode.HTML)
+
+    context.user_data.pop("target_bal_user_id", None)
+    return ConversationHandler.END
+
+# -------------------- DIRECT ADMIN BALANCE COMMANDS --------------------
+
+async def add_balance_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Command: /addbalance <USER_ID_OR_USERNAME> <AMOUNT>"""
+    if not is_admin(update.effective_user.id):
+        return
+
+    if len(context.args) < 2:
+        await update.message.reply_text(
+            "Usage: <code>/addbalance &lt;telegram_id_or_@username&gt; &lt;amount&gt;</code>\nExample: <code>/addbalance 123456789 25</code> or <code>/addbalance @username 10</code>",
+            parse_mode=ParseMode.HTML
+        )
+        return
+
+    target_id_raw = context.args[0].strip()
+    try:
+        amount = float(context.args[1].replace("$", "").replace("+", "").strip())
+        if amount <= 0:
+            await update.message.reply_text("Amount must be greater than 0.")
+            return
+    except ValueError:
+        await update.message.reply_text("❌ Invalid amount. Must be a number.")
+        return
+
+    user = await database.get_user_by_id_or_username(target_id_raw)
+    if not user:
+        await update.message.reply_text(f"❌ User not found with ID/Username: <code>{escape(target_id_raw)}</code>", parse_mode=ParseMode.HTML)
+        return
+
+    currency = await database.get_setting("currency_symbol", "$")
+    user_id = user["telegram_id"]
+    await database.update_user_balance(user_id, amount, is_deposit=True)
+
+    # Notify User
+    try:
+        await context.bot.send_message(
+            chat_id=user_id,
+            text=f"🎁 <b>Balance Added by Admin!</b>\n\n<code>+{currency}{amount:.2f}</code> has been added to your wallet balance.",
+            parse_mode=ParseMode.HTML
+        )
+    except Exception:
+        pass
+
+    updated_user = await database.get_user(user_id)
+    await update.message.reply_text(
+        f"✅ <b>Added {currency}{amount:.2f} to user!</b>\n\n"
+        f"👤 User: <code>{updated_user.get('first_name', 'N/A')}</code> (@{updated_user.get('username', 'N/A')})\n"
+        f"🆔 Telegram ID: <code>{user_id}</code>\n"
+        f"💰 New Balance: <code>{currency}{updated_user['balance']:.2f}</code>",
+        parse_mode=ParseMode.HTML
+    )
+
+async def deduct_balance_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Command: /deductbalance <USER_ID_OR_USERNAME> <AMOUNT>"""
+    if not is_admin(update.effective_user.id):
+        return
+
+    if len(context.args) < 2:
+        await update.message.reply_text(
+            "Usage: <code>/deductbalance &lt;telegram_id_or_@username&gt; &lt;amount&gt;</code>\nExample: <code>/deductbalance 123456789 10</code> or <code>/deductbalance @username 5</code>",
+            parse_mode=ParseMode.HTML
+        )
+        return
+
+    target_id_raw = context.args[0].strip()
+    try:
+        amount = float(context.args[1].replace("$", "").replace("-", "").strip())
+        if amount <= 0:
+            await update.message.reply_text("Amount must be greater than 0.")
+            return
+    except ValueError:
+        await update.message.reply_text("❌ Invalid amount. Must be a number.")
+        return
+
+    user = await database.get_user_by_id_or_username(target_id_raw)
+    if not user:
+        await update.message.reply_text(f"❌ User not found with ID/Username: <code>{escape(target_id_raw)}</code>", parse_mode=ParseMode.HTML)
+        return
+
+    currency = await database.get_setting("currency_symbol", "$")
+    user_id = user["telegram_id"]
+    await database.update_user_balance(user_id, -amount, is_spend=False)
+
+    # Notify User
+    try:
+        await context.bot.send_message(
+            chat_id=user_id,
+            text=f"⚠️ <b>Balance Adjustment by Admin:</b>\n\n<code>-{currency}{amount:.2f}</code> was deducted from your wallet balance.",
+            parse_mode=ParseMode.HTML
+        )
+    except Exception:
+        pass
+
+    updated_user = await database.get_user(user_id)
+    await update.message.reply_text(
+        f"✅ <b>Deducted {currency}{amount:.2f} from user!</b>\n\n"
+        f"👤 User: <code>{updated_user.get('first_name', 'N/A')}</code> (@{updated_user.get('username', 'N/A')})\n"
+        f"🆔 Telegram ID: <code>{user_id}</code>\n"
+        f"💰 New Balance: <code>{currency}{updated_user['balance']:.2f}</code>",
+        parse_mode=ParseMode.HTML
+    )
 
 # -------------------- BROADCAST --------------------
 
