@@ -72,11 +72,15 @@ STRINGS = {
         "deposit_select_method": "📥 <b>Select Payment / Deposit Method</b>\n\nChoose your preferred payment method below to add funds to your wallet:",
         "btn_crypto_gateway": "🪙 USDT / Crypto (Auto Instant)",
         
-        # Crypto Networks Selection
+        # Crypto Networks Selection & Amount
         "select_crypto_network": "🌐 <b>Select USDT Blockchain Network</b>\n\nPlease select the blockchain network you want to deposit with:",
-        
+        "select_crypto_amount": "💵 <b>Select or Enter Deposit Amount ({network})</b>\n\nChoose a quick amount below or send your desired USD amount (e.g. <code>0.10</code>, <code>5</code>, <code>15.50</code>):",
+        "btn_custom_amount": "✍️ Custom Amount ($0.10, $5...)",
+        "custom_amount_prompt": "💵 <b>Enter Custom Deposit Amount ({network})</b>\n\nPlease reply with the exact USD amount you wish to deposit (e.g. <code>0.10</code>, <code>2.50</code>, <code>15</code>):",
+        "invalid_amount_number": "❌ Please enter a valid number (e.g. <code>0.10</code>, <code>5</code>, <code>10</code>):",
+
         # Direct Network Crypto Invoice
-        "invoice_title_single_net": "🪙 <b>USDT ({network}) Deposit Address</b>\n\n🔖 <b>Invoice ID:</b> <code>{code}</code>\n🌐 <b>Network:</b> <code>{network}</code>\n\n📌 <b>{network} Transfer Address:</b>\n<code>{address}</code> <i>(Tap to copy)</i>\n\n━━━━━━━━━━━━━━━━━━━━\n💡 <b>Deposit Instructions:</b>\n1. Send <b>ANY amount</b> of USDT to this address (No minimum limit!).\n2. After sending, click <b>'⚡ Submit TxHash / Verify'</b> below.\n3. The system will automatically detect the exact amount you sent from your TxHash and credit it to your wallet instantly!\n━━━━━━━━━━━━━━━━━━━━",
+        "invoice_title_single_net": "🪙 <b>USDT ({network}) Deposit Invoice</b>\n\n🔖 <b>Invoice ID:</b> <code>{code}</code>\n💵 <b>Amount to Pay:</b> <code>{symbol}{amount:.2f} USDT</code>\n🌐 <b>Network:</b> <code>{network}</code>\n\n📌 <b>{network} Deposit Address:</b>\n<code>{address}</code> <i>(Tap to copy)</i>\n\n━━━━━━━━━━━━━━━━━━━━\n💡 <b>Instructions:</b>\n1. Send <code>{symbol}{amount:.2f} USDT</code> to this address (or use Binance Pay Web Checkout below).\n2. After sending, click <b>'⚡ Submit TxHash / Verify'</b> to verify and credit your balance instantly!\n━━━━━━━━━━━━━━━━━━━━",
         "btn_check_status": "🔄 Check Payment Status",
         "btn_submit_tx": "⚡ Submit TxHash / Verify",
         "btn_binance_pay_checkout": "🟡 Binance Pay Web Checkout (0% Gas) 🔗",
@@ -95,9 +99,9 @@ STRINGS = {
         "deposit_rejected_user": "❌ <b>Deposit Request Rejected</b>\n\n🔖 <b>Deposit ID:</b> <code>{code}</code>\n💳 <b>Method:</b> <code>{method}</code>\n\n⚠️ <i>Reason: Payment could not be verified with the provided TrxID / Sender number. Please contact Support if you need assistance.</i>",
 
         # TxHash Validation
-        "submit_tx_prompt": "⚡ <b>Submit TxHash for Verification</b>\n\n🔖 Invoice: <code>{code}</code>\n🌐 Network: <code>{network}</code>\n\n📌 <b>How to get your TxHash:</b>\n1. Open your Binance App or Crypto Wallet -> <b>Withdrawal History</b>.\n2. Tap the transfer and copy the <b>TxID / TxHash</b> (64 or 66 character code).\n3. Send the copied code here.\n\n💡 <i>(Example: <code>0x78ab9c456...</code>)</i>",
-        "fake_tx_hash_warn": "❌ <b>Invalid or Fake Transaction Hash (TxHash)!</b>\n\n⚠️ The text you provided: <code>{hash}</code> is not a valid blockchain transaction hash.\n\n📌 <b>How to find genuine TxHash:</b>\n• Go to your Binance / Wallet <b>Withdrawal History</b>.\n• Click on the transaction and copy the <b>TxID</b>.\n\n👉 Please reply with the genuine 64/66 character TxHash (or Cancel):",
-        "tx_submitted_success": "✅ <b>TxHash Submitted Successfully!</b>\n\n🔖 <b>Invoice:</b> <code>{code}</code>\n🌐 <b>Network:</b> <code>{network}</code>\n🔗 <b>TxHash:</b> <code>{hash}</code>\n\n⏳ <i>The system is verifying your blockchain transaction. Your balance will be credited automatically once confirmed.</i>",
+        "submit_tx_prompt": "⚡ <b>Submit TxHash / Binance Transaction ID for Verification</b>\n\n🔖 Invoice: <code>{code}</code>\n🌐 Network: <code>{network}</code>\n\n📌 <b>How to find your TxHash or Binance Pay ID:</b>\n1. Open your Binance App or Crypto Wallet -> <b>History / Transaction Details</b>.\n2. Copy the <b>TxID, TxHash, or Binance Order ID</b>.\n3. Send the copied code here.\n\n💡 <i>(Example: <code>405061229575</code> or <code>0x78ab9c456...</code>)</i>",
+        "fake_tx_hash_warn": "❌ <b>Invalid or Fake Transaction ID / TxHash!</b>\n\n⚠️ The text you provided: <code>{hash}</code> is not a valid transaction identifier.\n\n📌 <b>How to find genuine ID:</b>\n• Go to your Binance / Wallet <b>Transaction History</b>.\n• Click on the transfer and copy the <b>TxID or Binance Order ID</b>.\n\n👉 Please reply with the genuine TxHash / ID (or Cancel):",
+        "tx_submitted_success": "✅ <b>Transaction ID Submitted Successfully!</b>\n\n🔖 <b>Invoice:</b> <code>{code}</code>\n🌐 <b>Network:</b> <code>{network}</code>\n🔗 <b>ID:</b> <code>{hash}</code>\n\n⏳ <i>The system is verifying your transaction. Your balance will be credited automatically once confirmed.</i>",
         "tx_verification_failed": "⚠️ <b>Transaction Verification Failed!</b>\n\n❌ <b>Reason:</b> <i>{reason}</i>\n\n💡 <b>Tips:</b>\n1. If you just sent the transaction, please wait 1-2 minutes for blockchain confirmations.\n2. Ensure you sent to the correct address on the <code>{network}</code> network.\n3. Click 'Check Payment Status' after a few moments.",
 
         # Orders & Profile & Language
@@ -172,11 +176,15 @@ STRINGS = {
         "deposit_select_method": "📥 <b>পেমেন্ট / ডিপোজিট পদ্ধতি বেছে নিন</b>\n\nওয়ালেটে টাকা যোগ করতে আপনার পছন্দের মেথড সিলেক্ট করুন:",
         "btn_crypto_gateway": "🪙 USDT / ক্রিপ্টো (অটো ইনস্ট্যান্ট)",
         
-        # Crypto Networks Selection
+        # Crypto Networks Selection & Amount
         "select_crypto_network": "🌐 <b>USDT ব্লকচেইন নেটওয়ার্ক বেছে নিন</b>\n\nআপনি কোন নেটওয়ার্কের মাধ্যমে USDT পাঠাতে চান তা সিলেক্ট করুন:",
-        
+        "select_crypto_amount": "💵 <b>ডিপোজিটের পরিমাণ বেছে নিন ({network})</b>\n\nনিচের যেকোনো অপশন সিলেক্ট করুন অথবা কত ডলার পাঠাতে চান তা লিখে মেসেজ পাঠান (যেমন: <code>0.10</code>, <code>5</code>, <code>15.50</code>):",
+        "btn_custom_amount": "✍️ কাস্টম অ্যামাউন্ট ($0.10, $5...)",
+        "custom_amount_prompt": "💵 <b>কাস্টম ডিপোজিট পরিমাণ লিখুন ({network})</b>\n\nঅনুগ্রহ করে কত ডলার ($) ডিপোজিট করতে চান তা লিখে মেসেজ পাঠান (যেমন: <code>0.10</code>, <code>2.50</code>, <code>15</code>):",
+        "invalid_amount_number": "❌ অনুগ্রহ করে একটি সঠিক সংখ্যা লিখুন (যেমন: <code>0.10</code>, <code>5</code>, <code>10</code>):",
+
         # Direct Network Crypto Invoice
-        "invoice_title_single_net": "🪙 <b>USDT ({network}) ডিপোজিট এড্রেস</b>\n\n🔖 <b>ইনভয়েস ID:</b> <code>{code}</code>\n🌐 <b>নেটওয়ার্ক:</b> <code>{network}</code>\n\n📌 <b>{network} ডিপোজিট এড্রেস:</b>\n<code>{address}</code> <i>(কপি করতে ট্যাপ করুন)</i>\n\n━━━━━━━━━━━━━━━━━━━━\n💡 <b>ডিপোজিট নিয়মাবলী:</b>\n১. এই এড্রেসে আপনার ইচ্ছেমতো <b>যেকোনো পরিমাণ USDT</b> পাঠান (কোনো সর্বনিম্ন সীমা নেই!)।\n২. পাঠানো শেষ হলে নিচে <b>'⚡ Submit TxHash / Verify'</b> বাটনে চাপুন।\n৩. আপনার ট্রানজ্যাকশন TxHash দিলেই সিস্টেম অটোমেটিক চেক করে যত ডলার পাঠিয়েছেন হুবহু তত ডলার আপনার ওয়ালেটে সাথে সাথে যুক্ত করে দেবে!\n━━━━━━━━━━━━━━━━━━━━",
+        "invoice_title_single_net": "🪙 <b>USDT ({network}) ডিপোজিট ইনভয়েস</b>\n\n🔖 <b>ইনভয়েস ID:</b> <code>{code}</code>\n💵 <b>ডিপোজিট পরিমাণ:</b> <code>{symbol}{amount:.2f} USDT</code>\n🌐 <b>নেটওয়ার্ক:</b> <code>{network}</code>\n\n📌 <b>{network} ডিপোজিট এড্রেস:</b>\n<code>{address}</code> <i>(কপি করতে ট্যাপ করুন)</i>\n\n━━━━━━━━━━━━━━━━━━━━\n💡 <b>ডিপোজিট নিয়মাবলী:</b>\n১. এই এড্রেসে <code>{symbol}{amount:.2f} USDT</code> পাঠান (অথবা সরাসরি নিচের Binance Pay বাটন ব্যবহার করুন)।\n২. পাঠানো শেষ হলে নিচে <b>'⚡ Submit TxHash / Verify'</b> বাটনে চাপুন।\n৩. সাথে সাথে সিস্টেম আপনার ব্যালেন্সে হুবহু <code>{symbol}{amount:.2f} USDT</code> যুক্ত করে দেবে!\n━━━━━━━━━━━━━━━━━━━━",
         "btn_check_status": "🔄 পেমেন্ট স্ট্যাটাস চেক করুন",
         "btn_submit_tx": "⚡ Submit TxHash / Verify",
         "btn_binance_pay_checkout": "🟡 Binance Pay ওয়েব চেকআউট (0% ফি) 🔗",
@@ -195,9 +203,9 @@ STRINGS = {
         "deposit_rejected_user": "❌ <b>ডিপোজিট রিকোয়েস্ট বাতিল করা হয়েছে</b>\n\n🔖 <b>ডিপোজিট ID:</b> <code>{code}</code>\n💳 <b>মেথড:</b> <code>{method}</code>\n\n⚠️ <i>কারণ: আপনার প্রদত্ত TrxID বা সেন্ডার নম্বরে পেমেন্ট পাওয়া যায়নি। সহায়তার জন্য সাপোর্টে যোগাযোগ করুন।</i>",
 
         # TxHash Validation
-        "submit_tx_prompt": "⚡ <b>ভেরিফিকেশনের জন্য TxHash সাবমিট করুন</b>\n\n🔖 ইনভয়েস: <code>{code}</code>\n🌐 নেটওয়ার্ক: <code>{network}</code>\n\n📌 <b>সঠিক TxHash পাওয়ার নিয়ম:</b>\n১. আপনার Binance App বা ক্রিপ্টো ওয়ালেটের <b>Withdrawal History</b>-তে যান।\n২. ট্রানজ্যাকশনটির উপর ক্লিক করে <b>TxID / TxHash</b> কপি করুন (৬৪ বা ৬৬ অক্ষরের কোড)।\n৩. কপি করা কোডটি এখানে মেসেজ করুন।\n\n💡 <i>(যেমন: <code>0x78ab9c456...</code>)</i>",
-        "fake_tx_hash_warn": "❌ <b>ভুল বা নকল Transaction Hash (TxHash)!</b>\n\n⚠️ আপনি যে তথ্যটি দিয়েছেন: <code>{hash}</code> — এটি কোনো সঠিক ব্লকচেইন ট্রানজ্যাকশন হ্যাশ নয়।\n\n📌 <b>সঠিক হ্যাশ কোথায় পাবেন:</b>\n• আপনার Binance App বা ওয়ালেটের <b>Withdrawal History</b>-তে যান।\n• ডিপোজিট করা ট্রানজ্যাকশনটির আসল <b>TxID</b> কপি করে আনুন।\n\n👉 অনুগ্রহ করে সঠিক ৬৪/৬৬ অক্ষরের আসল TxHash টি পাঠান:",
-        "tx_submitted_success": "✅ <b>TxHash সফলভাবে সাবমিট হয়েছে!</b>\n\n🔖 <b>ইনভয়েস:</b> <code>{code}</code>\n🌐 <b>নেটওয়ার্ক:</b> <code>{network}</code>\n🔗 <b>TxHash:</b> <code>{hash}</code>\n\n⏳ <i>সিস্টেম ব্লকচেইন কনফার্মেশন চেক করছে। ব্লক কনফার্ম হওয়া মাত্রই ব্যালেন্স অটোমেটিক যোগ হয়ে যাবে।</i>",
+        "submit_tx_prompt": "⚡ <b>ভেরিফিকেশনের জন্য TxHash / Binance ID সাবমিট করুন</b>\n\n🔖 ইনভয়েস: <code>{code}</code>\n🌐 নেটওয়ার্ক: <code>{network}</code>\n\n📌 <b>সঠিক আইডি পাওয়ার নিয়ম:</b>\n১. আপনার Binance App বা ওয়ালেটের <b>Withdrawal / Transfer History</b>-তে যান।\n২. ট্রানজ্যাকশনের <b>TxID, TxHash বা Binance Order ID</b> কপি করুন।\n৩. কপি করা কোডটি এখানে মেসেজ করুন।\n\n💡 <i>(যেমন: <code>405061229575</code> বা <code>0x78ab9c456...</code>)</i>",
+        "fake_tx_hash_warn": "❌ <b>ভুল বা নকল Transaction ID / TxHash!</b>\n\n⚠️ আপনি যে তথ্যটি দিয়েছেন: <code>{hash}</code> — এটি কোনো সঠিক ট্রানজ্যাকশন আইডি নয়।\n\n📌 <b>সঠিক আইডি কোথায় পাবেন:</b>\n• আপনার Binance App বা ওয়ালেটের ট্রানজ্যাকশন হিস্টোরিতে যান।\n• আসল <b>TxID বা Binance Order ID</b> কপি করে আনুন।\n\n👉 অনুগ্রহ করে সঠিক আইডিটি পাঠান:",
+        "tx_submitted_success": "✅ <b>ট্রানজ্যাকশন আইডি সফলভাবে সাবমিট হয়েছে!</b>\n\n🔖 <b>ইনভয়েস:</b> <code>{code}</code>\n🌐 <b>নেটওয়ার্ক:</b> <code>{network}</code>\n🔗 <b>আইডি:</b> <code>{hash}</code>\n\n⏳ <i>সিস্টেম কনফার্মেশন চেক করছে। কনফার্ম হওয়া মাত্রই ব্যালেন্স অটোমেটিক যোগ হয়ে যাবে।</i>",
         "tx_verification_failed": "⚠️ <b>ট্রানজ্যাকশন ভেরিফিকেশন করা যায়নি!</b>\n\n❌ <b>কারণ:</b> <i>{reason}</i>\n\n💡 <b>পরামর্শ:</b>\n১. আপনি যদি মাত্র ১-২ সেকেন্ড আগে পাঠিয়ে থাকেন, তবে ব্লকচেইনে আসতে ১-২ মিনিট সময় লাগতে পারে।\n২. সঠিক নেটওয়ার্কে ও সঠিক ঠিকানায় ফান্ড পাঠিয়েছেন কিনা তা নিশ্চিত করুন।\n৩. কিছুক্ষণ পর 'পেমেন্ট স্ট্যাটাস চেক করুন' বাটনে চাপুন।",
 
         "orders_title": "📦 <b>আপনার সাম্প্রতিক অর্ডারসমূহ:</b>\n\n",
@@ -270,8 +278,12 @@ STRINGS = {
         "btn_crypto_gateway": "🪙 USDT / کرپٹو (فوری خودکار)",
         
         "select_crypto_network": "🌐 <b>USDT بلاک چین نیٹ ورک منتخب کریں</b>\n\nبراہ کرم ادائیگی کے لیے نیٹ ورک منتخب کریں:",
-        
-        "invoice_title_single_net": "🪙 <b>USDT ({network}) ڈپازٹ ایڈریس</b>\n\n🔖 <b>انوائس ID:</b> <code>{code}</code>\n🌐 <b>نیٹ ورک:</b> <code>{network}</code>\n\n📌 <b>{network} ایڈریس:</b>\n<code>{address}</code> <i>(کاپی کرنے کے لیے ٹیپ کریں)</i>\n\n━━━━━━━━━━━━━━━━━━━━\n💡 <b>ڈپازٹ کی ہدایات:</b>\n1. اس ایڈریس پر USDT کی <b>کوئی بھی رقم</b> بھیجیں (کوئی کم از کم حد نہیں!)۔\n2. رقم بھیجنے کے بعد نیچے <b>'⚡ Submit TxHash / Verify'</b> دبائیں۔\n3. سسٹم آپ کے TxHash سے رقم کا خودکار پتہ لگا کر فوراً والٹ میں شامل کر دے گا!\n━━━━━━━━━━━━━━━━━━━━",
+        "select_crypto_amount": "💵 <b>ڈپازٹ کی رقم منتخب کریں ({network})</b>\n\nنیچے دی گئی رقم منتخب کریں یا مطلوبہ رقم بھیجیں (مثال: <code>0.10</code>, <code>5</code>, <code>15.50</code>):",
+        "btn_custom_amount": "✍️ کسٹم رقم ($0.10, $5...)",
+        "custom_amount_prompt": "💵 <b>کسٹم ڈپازٹ رقم درج کریں ({network})</b>\n\nبراہ کرم ادا کی جانے والی USD رقم درج کریں (مثال: <code>0.10</code>, <code>2.50</code>, <code>15</code>):",
+        "invalid_amount_number": "❌ براہ کرم درست نمبر درج کریں (مثال: <code>0.10</code>, <code>5</code>, <code>10</code>):",
+
+        "invoice_title_single_net": "🪙 <b>USDT ({network}) ڈپازٹ انوائس</b>\n\n🔖 <b>انوائس ID:</b> <code>{code}</code>\n💵 <b>رقم:</b> <code>{symbol}{amount:.2f} USDT</code>\n🌐 <b>نیٹ ورک:</b> <code>{network}</code>\n\n📌 <b>{network} ایڈریس:</b>\n<code>{address}</code> <i>(کاپی کرنے کے لیے ٹیپ کریں)</i>\n\n━━━━━━━━━━━━━━━━━━━━\n💡 <b>ڈپازٹ کی ہدایات:</b>\n1. اس ایڈریس پر <code>{symbol}{amount:.2f} USDT</code> بھیجیں۔\n2. رقم بھیجنے کے بعد نیچے <b>'⚡ Submit TxHash / Verify'</b> دبائیں۔\n3. سسٹم فوراً رقم کی تصدیق کر کے والٹ میں شامل کر دے گا!\n━━━━━━━━━━━━━━━━━━━━",
         "btn_check_status": "🔄 اسٹیٹس چیک کریں",
         "btn_submit_tx": "⚡ Submit TxHash / Verify",
         "btn_binance_pay_checkout": "🟡 بائننس پے ویب چیک آؤٹ (0% فیس) 🔗",
@@ -288,9 +300,9 @@ STRINGS = {
         "deposit_approved_user": "🎉 <b>ڈپازٹ منظور اور شامل کر دیا گیا!</b>\n\n🔖 <b>ڈپازٹ ID:</b> <code>{code}</code>\n💰 <b>شامل شدہ رقم:</b> <code>{symbol}{amount:.2f}</code>\n💳 <b>طریقہ:</b> <code>{method}</code>\n\n✨ <i>آپ کا بیلنس اپ ڈیٹ ہو گیا ہے!</i>",
         "deposit_rejected_user": "❌ <b>ڈپازٹ کی درخواست مسترد کر دی گئی</b>\n\n🔖 <b>ڈپازٹ ID:</b> <code>{code}</code>\n💳 <b>طریقہ:</b> <code>{method}</code>\n\n⚠️ <i>دی گئی تفصیلات سے ادائیگی کی تصدیق نہیں ہو سکی۔</i>",
 
-        "submit_tx_prompt": "⚡ <b>تصدیق کے لیے TxHash درج کریں</b>\n\n🔖 انوائس: <code>{code}</code>\n🌐 نیٹ ورک: <code>{network}</code>\n\n📌 <b>درست TxHash حاصل کرنے کا طریقہ:</b>\n1. بائننس ایپ یا والٹ کی <b>Withdrawal History</b> کھولیں۔\n2. ٹرانزیکشن پر کلک کر کے <b>TxID / TxHash</b> کاپی کریں۔\n3. کاپی شدہ کوڈ یہاں بھیجیں۔\n\n💡 <i>(مثال: <code>0x78ab9c456...</code>)</i>",
-        "fake_tx_hash_warn": "❌ <b>غلط یا جعلی ٹرانزیکشن ہیش (TxHash)!</b>\n\n⚠️ آپ کا فراہم کردہ ٹیکسٹ: <code>{hash}</code> درست بلاک چین ہیش نہیں ہے۔\n\n📌 <b>درست ہیش کہاں ملے گی:</b>\n• اپنے بائننس یا والٹ کی <b>Withdrawal History</b> میں جائیں۔\n• ٹرانزیکشن کی اصل <b>TxID</b> کاپی کر کے لائیں۔\n\n👉 براہ کرم اصل 64/66 ہندسوں کا TxHash دوبارہ بھیجیں:",
-        "tx_submitted_success": "✅ <b>TxHash کامیابی سے جمع ہو گیا!</b>\n\n🔖 <b>انوائس:</b> <code>{code}</code>\n🌐 <b>نیٹ ورک:</b> <code>{network}</code>\n🔗 <b>TxHash:</b> <code>{hash}</code>\n\n⏳ <i>سسٹم تصدیق کر رہا ہے۔ تصدیق ہوتے ہی بیلنس شامل کر دیا جائے گا۔</i>",
+        "submit_tx_prompt": "⚡ <b>تصدیق کے لیے TxHash / بائننس ٹرانزیکشن ID درج کریں</b>\n\n🔖 انوائس: <code>{code}</code>\n🌐 نیٹ ورک: <code>{network}</code>\n\n📌 <b>آئی ڈی حاصل کرنے کا طریقہ:</b>\n1. بائننس ایپ یا والٹ کی <b>Withdrawal / History</b> کھولیں۔\n2. ٹرانزیکشن پر کلک کر کے <b>TxID, TxHash یا Binance Order ID</b> کاپی کریں۔\n3. کاپی شدہ کوڈ یہاں بھیجیں۔\n\n💡 <i>(مثال: <code>405061229575</code> یا <code>0x78ab9c456...</code>)</i>",
+        "fake_tx_hash_warn": "❌ <b>غلط یا جعلی ٹرانزیکشن آئی ڈی / TxHash!</b>\n\n⚠️ آپ کا فراہم کردہ کوڈ درست نہیں ہے۔\n\n📌 <b>درست آئی ڈی کہاں ملے گی:</b>\n• اپنے بائننس یا والٹ کی <b>ہسٹری</b> میں جائیں۔\n• اصل <b>TxID یا Binance Order ID</b> کاپی کر کے لائیں۔\n\n👉 براہ کرم اصل آئی ڈی دوبارہ بھیجیں:",
+        "tx_submitted_success": "✅ <b>ٹرانزیکشن آئی ڈی جمع ہو گئی!</b>\n\n🔖 <b>انوائس:</b> <code>{code}</code>\n🌐 <b>نیٹ ورک:</b> <code>{network}</code>\n🔗 <b>آئی ڈی:</b> <code>{hash}</code>\n\n⏳ <i>سسٹم تصدیق کر رہا ہے۔ تصدیق ہوتے ہی بیلنس شامل کر دیا جائے گا۔</i>",
         "tx_verification_failed": "⚠️ <b>ٹرانزیکشن کی تصدیق نہیں ہو سکی!</b>\n\n❌ <b>وجہ:</b> <i>{reason}</i>\n\n💡 <b>رہنمائی:</b>\n1. اگر ابھی رقم بھیجی ہے تو بلاک چین کنفرمیشن کے لیے 1-2 منٹ انتظار کریں۔\n2. یقینی بنائیں کہ آپ نے درست نیٹ ورک پر رقم بھیجی ہے۔\n3. تھوڑی دیر بعد دوبارہ اسٹیٹس چیک کریں۔",
 
         "orders_title": "📦 <b>آپ کے حالیہ آرڈرز:</b>\n\n",
@@ -363,8 +375,12 @@ STRINGS = {
         "btn_crypto_gateway": "🪙 تتر / کریپتو (تأیید آنی خودکار)",
         
         "select_crypto_network": "🌐 <b>انتخاب شبکه انتقال تتر (USDT)</b>\n\nلطفاً شبکه مورد نظر برای واریز تتر را انتخاب نمایید:",
-        
-        "invoice_title_single_net": "🪙 <b>آدرس واریز تتر ({network})</b>\n\n🔖 <b>شناسه فاکتور:</b> <code>{code}</code>\n🌐 <b>شبکه:</b> <code>{network}</code>\n\n📌 <b>آدرس کیف پول {network}:</b>\n<code>{address}</code> <i>(برای کپی لمس کنید)</i>\n\n━━━━━━━━━━━━━━━━━━━━\n💡 <b>راهنمای واریز:</b>\n۱. به این آدرس <b>هر مبلغی</b> که مایلید تتر انتقال دهید (بدون محدودیت حداقل!).\n۲. پس از انتقال، دکمه <b>'⚡ Submit TxHash / Verify'</b> را در زیر بزنید.\n۳. سیستم با بررسی TxHash مبلغ واریزی شما را به صورت خودکار تشخیص داده و فوراً حسابتان را شارژ می‌کند!\n━━━━━━━━━━━━━━━━━━━━",
+        "select_crypto_amount": "💵 <b>مبلغ واریزی را انتخاب یا وارد فرمایید ({network})</b>\n\nیکی از گزینه‌ها را انتخاب کرده یا مبلغ دلخواه را ارسال فرمایید (مثال: <code>0.10</code>, <code>5</code>, <code>15.50</code>):",
+        "btn_custom_amount": "✍️ مبلغ دلخواه ($0.10, $5...)",
+        "custom_amount_prompt": "💵 <b>مبلغ دلخواه را وارد فرمایید ({network})</b>\n\nلطفاً مبلغ مورد نظر را ارسال فرمایید (مثال: <code>0.10</code>, <code>2.50</code>, <code>15</code>):",
+        "invalid_amount_number": "❌ لطفاً یک عدد معتبر ارسال فرمایید (مثال: <code>0.10</code>, <code>5</code>, <code>10</code>):",
+
+        "invoice_title_single_net": "🪙 <b>فاکتور واریز تتر ({network})</b>\n\n🔖 <b>شناسه فاکتور:</b> <code>{code}</code>\n💵 <b>مبلغ واریزی:</b> <code>{symbol}{amount:.2f} USDT</code>\n🌐 <b>شبکه:</b> <code>{network}</code>\n\n📌 <b>آدرس کیف پول {network}:</b>\n<code>{address}</code> <i>(برای کپی لمس کنید)</i>\n\n━━━━━━━━━━━━━━━━━━━━\n💡 <b>راهنمای واریز:</b>\n۱. به این آدرس مبلغ <code>{symbol}{amount:.2f} USDT</code> انتقال دهید.\n۲. پس از انتقال، دکمه <b>'⚡ Submit TxHash / Verify'</b> را بزنید.\n۳. سیستم بلافاصله حساب شما را شارژ خواهد کرد!\n━━━━━━━━━━━━━━━━━━━━",
         "btn_check_status": "🔄 بررسی وضعیت پرداخت",
         "btn_submit_tx": "⚡ Submit TxHash / Verify",
         "btn_binance_pay_checkout": "🟡 پرداخت با بایننس پی (کارمزد صفر) 🔗",
@@ -381,9 +397,9 @@ STRINGS = {
         "deposit_approved_user": "🎉 <b>واریزی تأیید و موجودی شارژ شد!</b>\n\n🔖 <b>شناسه:</b> <code>{code}</code>\n💰 <b>مبلغ:</b> <code>{symbol}{amount:.2f}</code>\n💳 <b>روش:</b> <code>{method}</code>\n\n✨ <i>موجودی شما با موفقیت افزایش یافت!</i>",
         "deposit_rejected_user": "❌ <b>درخواست واریز رد شد</b>\n\n🔖 <b>شناسه:</b> <code>{code}</code>\n💳 <b>روش:</b> <code>{method}</code>\n\n⚠️ <i>تراکنش با مشخصات وارد شده تأیید نگردید.</i>",
 
-        "submit_tx_prompt": "⚡ <b>ارسال TxHash برای تأیید تراکنش</b>\n\n🔖 فاکتور: <code>{code}</code>\n🌐 شبکه: <code>{network}</code>\n\n📌 <b>نحوه دریافت کد TxHash:</b>\n۱. برنامه بایننس یا کیف پول خود را باز کرده و به بخش <b>Withdrawal History</b> بروید.\n۲. روی تراکنش کلیک کرده و <b>TxID / TxHash</b> (کد ۶۴ یا ۶۶ کاراکتری) را کپی کنید.\n۳. کد کپی شده را اینجا ارسال فرمایید.\n\n💡 <i>(مثال: <code>0x78ab9c456...</code>)</i>",
-        "fake_tx_hash_warn": "❌ <b>هش تراکنش نامعتبر یا جعلی (TxHash)!</b>\n\n⚠️ متنی که ارسال فرمودید: <code>{hash}</code> یک هش معتبر بلاک‌چین نمی‌باشد.\n\n📌 <b>یافتن کد صحیح:</b>\n• به بخش تاریخچه برداشت کیف پول خود بروید.\n• کد <b>TxID</b> تراکنش را کپی کرده و ارسال نمایید.\n\n👉 لطفاً کد صحیح ۶۴ یا ۶۶ رقمی را ارسال فرمایید:",
-        "tx_submitted_success": "✅ <b>هش تراکنش با موفقیت ثبت شد!</b>\n\n🔖 <b>فاکتور:</b> <code>{code}</code>\n🌐 <b>شبکه:</b> <code>{network}</code>\n🔗 <b>TxHash:</b> <code>{hash}</code>\n\n⏳ <i>سیستم در حال بررسی تراکنش است. به محض تأیید شبکه، حساب شما شارژ خواهد شد.</i>",
+        "submit_tx_prompt": "⚡ <b>ارسال TxHash / شناسه تراکنش بایننس برای تأیید</b>\n\n🔖 فاکتور: <code>{code}</code>\n🌐 شبکه: <code>{network}</code>\n\n📌 <b>نحوه دریافت کد:</b>\n۱. برنامه بایننس یا کیف پول خود را باز کرده و به بخش <b>Withdrawal / History</b> بروید.\n۲. <b>TxID، TxHash یا شناسه سفارش بایننس</b> را کپی کنید.\n۳. کد کپی شده را اینجا ارسال فرمایید.\n\n💡 <i>(مثال: <code>405061229575</code> یا <code>0x78ab9c456...</code>)</i>",
+        "fake_tx_hash_warn": "❌ <b>کد تراکنش نامعتبر است!</b>\n\n⚠️ متنی که ارسال فرمودید معتبر نمی‌باشد.\n\n📌 <b>یافتن کد صحیح:</b>\n• به تاریخچه تراکنش‌های کیف پول یا بایننس بروید.\n• کد <b>TxID یا Binance Order ID</b> را کپی کرده و ارسال نمایید.\n\n👉 لطفاً کد صحیح را ارسال فرمایید:",
+        "tx_submitted_success": "✅ <b>شناسه تراکنش با موفقیت ثبت شد!</b>\n\n🔖 <b>فاکتور:</b> <code>{code}</code>\n🌐 <b>شبکه:</b> <code>{network}</code>\n🔗 <b>شناسه:</b> <code>{hash}</code>\n\n⏳ <i>سیستم در حال بررسی تراکنش است. به محض تأیید شبکه، حساب شما شارژ خواهد شد.</i>",
         "tx_verification_failed": "⚠️ <b>تأیید تراکنش ناموفق بود!</b>\n\n❌ <b>دلیل:</b> <i>{reason}</i>\n\n💡 <b>راهنمایی:</b>\n۱. اگر به تازگی انتقال داده‌اید، تأیید بلاک‌چین ممکن است ۱ تا ۲ دقیقه طول بکشد.\n۲. از ارسال به آدرس و شبکه صحیح اطمینان حاصل نمایید.\n۳. کمی بعد دکمه 'بررسی وضعیت پرداخت' را بزنید.",
 
         "orders_title": "📦 <b>سفارش‌های اخیر شما:</b>\n\n",
@@ -457,8 +473,12 @@ STRINGS = {
         "btn_crypto_gateway": "🪙 تيذر / كريبتو (تأكيد فوري تلقائي)",
         
         "select_crypto_network": "🌐 <b>اختر شبكة تحويل USDT</b>\n\nيرجى تحديد شبكة البلوك تشين التي ترغب بالتحويل من خلالها:",
-        
-        "invoice_title_single_net": "🪙 <b>عنوان إيداع USDT ({network})</b>\n\n🔖 <b>رقم الفاتورة:</b> <code>{code}</code>\n🌐 <b>الشبكة:</b> <code>{network}</code>\n\n📌 <b>عنوان تحويل {network}:</b>\n<code>{address}</code> <i>(انقر للنسخ)</i>\n\n━━━━━━━━━━━━━━━━━━━━\n💡 <b>تعليمات الإيداع:</b>\n1. أرسل <b>أي مبلغ</b> تريده من USDT إلى هذا العنوان (بدون حد أدنى!).\n2. بعد التحويل، اضغط على <b>'⚡ Submit TxHash / Verify'</b> أدناه.\n3. سيقوم النظام تلقائياً بالتحقق من قيمة المبلغ المرسل عبر الـ TxHash وإضافته لمحفظتك فوراً!\n━━━━━━━━━━━━━━━━━━━━",
+        "select_crypto_amount": "💵 <b>اختر أو أدخل مبلغ الإيداع ({network})</b>\n\nاختر من المبالغ أدناه أو أرسل المبلغ المطلوب (مثال: <code>0.10</code>, <code>5</code>, <code>15.50</code>):",
+        "btn_custom_amount": "✍️ مبلغ مخصص ($0.10, $5...)",
+        "custom_amount_prompt": "💵 <b>أدخل مبلغ الإيداع ({network})</b>\n\nيرجى إرسال المبلغ بالدولار الذي ترغب بإيداعه (مثال: <code>0.10</code>, <code>2.50</code>, <code>15</code>):",
+        "invalid_amount_number": "❌ يرجى إدخال رقم صحيح (مثال: <code>0.10</code>, <code>5</code>, <code>10</code>):",
+
+        "invoice_title_single_net": "🪙 <b>فاتورة إيداع USDT ({network})</b>\n\n🔖 <b>رقم الفاتورة:</b> <code>{code}</code>\n💵 <b>المبلغ المطلوب:</b> <code>{symbol}{amount:.2f} USDT</code>\n🌐 <b>الشبكة:</b> <code>{network}</code>\n\n📌 <b>عنوان تحويل {network}:</b>\n<code>{address}</code> <i>(انقر للنسخ)</i>\n\n━━━━━━━━━━━━━━━━━━━━\n💡 <b>تعليمات الإيداع:</b>\n1. أرسل <code>{symbol}{amount:.2f} USDT</code> إلى هذا العنوان (أو استخدم دفع بايننس أدناه).\n2. بعد التحويل، اضغط على <b>'⚡ Submit TxHash / Verify'</b> للتأكيد الفوري!\n━━━━━━━━━━━━━━━━━━━━",
         "btn_check_status": "🔄 التحقق من حالة الدفع",
         "btn_submit_tx": "⚡ Submit TxHash / Verify",
         "btn_binance_pay_checkout": "🟡 الدفع عبر Binance Pay (بدون رسوم) 🔗",
@@ -476,9 +496,9 @@ STRINGS = {
         "deposit_approved_user": "🎉 <b>تم تأكيد الإيداع وإضافة الرصيد إلى محفظتك!</b>\n\n🔖 <b>رقم الإيداع:</b> <code>{code}</code>\n💰 <b>المبلغ المضاف:</b> <code>{symbol}{amount:.2f}</code>\n💳 <b>الطريقة:</b> <code>{method}</code>\n\n✨ <i>تم تحديث رصيدك بنجاح!</i>",
         "deposit_rejected_user": "❌ <b>تم رفض طلب الإيداع</b>\n\n🔖 <b>رقم الإيداع:</b> <code>{code}</code>\n💳 <b>الطريقة:</b> <code>{method}</code>\n\n⚠️ <i>لم يتم العثور على حوالة مطابقة للبيانات المدخلة.</i>",
 
-        "submit_tx_prompt": "⚡ <b>أرسل كود TxHash للتحقق التلقائي</b>\n\n🔖 الفاتورة: <code>{code}</code>\n🌐 الشبكة: <code>{network}</code>\n\n📌 <b>كيفية الحصول على كود TxHash الصحيح:</b>\n1. افتح تطبيق بايننس أو محفظتك وانتقل إلى <b>سجل السحب (Withdrawal History)</b>.\n2. اضغط على المعاملة وانسخ <b>TxID / TxHash</b> (رمز بطول 64 أو 66 حرفاً).\n3. أرسل الرمز المنسوخ هنا.\n\n💡 <i>(مثال: <code>0x78ab9c456...</code>)</i>",
-        "fake_tx_hash_warn": "❌ <b>هاش معاملة غير صحيح أو مزيف (TxHash)!</b>\n\n⚠️ النص الذي أرسلته: <code>{hash}</code> ليس كود معاملة بلوك تشين صالح.\n\n📌 <b>كيف تجد الهاش الصحيح:</b>\n• انتقل إلى سجل التحويلات في محفظتك أو بايننس.\n• انسخ كود <b>TxID</b> الحقيقي الخاص بعملية التحويل.\n\n👉 يرجى إعادة إرسال كود TxHash الصحيح المكون من 64/66 حرفاً:",
-        "tx_submitted_success": "✅ <b>تم إرسال كود TxHash بنجاح!</b>\n\n🔖 <b>الفاتورة:</b> <code>{code}</code>\n🌐 <b>الشبكة:</b> <code>{network}</code>\n🔗 <b>TxHash:</b> <code>{hash}</code>\n\n⏳ <i>النظام يتحقق من تأكيدات البلوك تشين. ستتم إضافة الرصيد تلقائياً بمجرد التأكيد.</i>",
+        "submit_tx_prompt": "⚡ <b>أرسل كود TxHash / معرف بايننس للتحقق التلقائي</b>\n\n🔖 الفاتورة: <code>{code}</code>\n🌐 الشبكة: <code>{network}</code>\n\n📌 <b>كيفية الحصول على الكود الصحيح:</b>\n1. افتح تطبيق بايننس أو محفظتك وانتقل إلى <b>سجل السحب / الحوالات</b>.\n2. انسخ <b>TxID, TxHash أو رقم طلب بايننس</b>.\n3. أرسل الرمز المنسوخ هنا.\n\n💡 <i>(مثال: <code>405061229575</code> أو <code>0x78ab9c456...</code>)</i>",
+        "fake_tx_hash_warn": "❌ <b>معرف معاملة غير صحيح!</b>\n\n⚠️ النص الذي أرسلته ليس معرف معاملة صالح.\n\n📌 <b>كيف تجد المعرف الصحيح:</b>\n• انتقل إلى سجل التحويلات في محفظتك أو بايننس.\n• انسخ كود <b>TxID أو Binance Order ID</b> الحقيقي.\n\n👉 يرجى إعادة إرسال المعرف الصحيح:",
+        "tx_submitted_success": "✅ <b>تم إرسال معرف المعاملة بنجاح!</b>\n\n🔖 <b>الفاتورة:</b> <code>{code}</code>\n🌐 <b>الشبكة:</b> <code>{network}</code>\n🔗 <b>المعرف:</b> <code>{hash}</code>\n\n⏳ <i>النظام يتحقق من التأكيدات. ستتم إضافة الرصيد تلقائياً بمجرد التأكيد.</i>",
         "tx_verification_failed": "⚠️ <b>فشل التحقق من المعاملة!</b>\n\n❌ <b>السبب:</b> <i>{reason}</i>\n\n💡 <b>نصائح:</b>\n1. إذا قمت بالتحويل للتو، قد يستغرق تأكيد الشبكة 1-2 دقيقة.\n2. تأكد من أنك أرسلت المبلغ المطلوب على الشبكة المحددة.\n3. اضغط على 'التحقق من حالة الدفع' بعد قليل.",
 
         "orders_title": "📦 <b>طلباتك الأخيرة:</b>\n\n",

@@ -276,9 +276,22 @@ def main():
         per_message=False
     ))
     app.add_handler(ConversationHandler(
-        entry_points=[CallbackQueryHandler(user_h.prompt_custom_deposit, pattern="^custom_deposit_btn$")],
-        states={user_h.CUSTOM_DEPOSIT_AMOUNT: [MessageHandler(filters.TEXT & ~filters.COMMAND, user_h.process_custom_deposit_input)]},
-        fallbacks=[CallbackQueryHandler(user_h.show_wallet, pattern="^user_wallet$"), CommandHandler("start", user_h.start_command)],
+        entry_points=[
+            CallbackQueryHandler(user_h.handle_select_crypto_network, pattern="^selnet_"),
+            CallbackQueryHandler(user_h.prompt_custom_deposit, pattern="^custom_deposit_btn$")
+        ],
+        states={
+            user_h.CUSTOM_DEPOSIT_AMOUNT: [
+                MessageHandler(filters.TEXT & ~filters.COMMAND, user_h.process_custom_deposit_input),
+                CallbackQueryHandler(user_h.handle_preset_deposit, pattern="^depamt_"),
+                CallbackQueryHandler(user_h.prompt_custom_deposit, pattern="^custom_deposit_btn$")
+            ]
+        },
+        fallbacks=[
+            CallbackQueryHandler(user_h.show_crypto_network_selection, pattern="^select_dep_crypto$"),
+            CallbackQueryHandler(user_h.show_wallet, pattern="^user_wallet$"),
+            CommandHandler("start", user_h.start_command)
+        ],
         per_message=False
     ))
 
@@ -417,6 +430,7 @@ def main():
     app.add_handler(CallbackQueryHandler(user_h.show_crypto_network_selection, pattern="^select_dep_crypto$"))
     app.add_handler(CallbackQueryHandler(user_h.handle_select_crypto_network, pattern="^selnet_"))
     app.add_handler(CallbackQueryHandler(user_h.show_manual_deposit_instructions, pattern="^select_dep_m_"))
+    app.add_handler(CallbackQueryHandler(user_h.handle_preset_deposit, pattern="^depamt_"))
     app.add_handler(CallbackQueryHandler(user_h.handle_preset_deposit, pattern="^create_dep_"))
     app.add_handler(CallbackQueryHandler(user_h.check_deposit_status, pattern="^chkdep_"))
     app.add_handler(CallbackQueryHandler(user_h.show_deposit_qr, pattern="^qrdep_"))
