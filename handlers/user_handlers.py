@@ -841,18 +841,15 @@ async def execute_create_deposit(update: Update, context: ContextTypes.DEFAULT_T
         erc20=erc20
     )
 
-    buttons = []
-    if checkout_url:
-        buttons.append([InlineKeyboardButton(t("btn_pay_binance", lang), url=checkout_url)])
-    
-    buttons.append([
-        InlineKeyboardButton(t("btn_check_status", lang), callback_data=f"chkdep_{merchant_trade_no}"),
-        InlineKeyboardButton(t("btn_submit_tx", lang), callback_data=f"txstart_{merchant_trade_no}")
-    ])
-    buttons.append([
-        InlineKeyboardButton(t("btn_show_qr", lang), callback_data=f"qrdep_{merchant_trade_no}"),
-        InlineKeyboardButton(t("btn_wallet", lang), callback_data="user_wallet")
-    ])
+    buttons = [
+        [
+            InlineKeyboardButton(t("btn_check_status", lang), callback_data=f"chkdep_{merchant_trade_no}"),
+            InlineKeyboardButton(t("btn_submit_tx", lang), callback_data=f"txstart_{merchant_trade_no}")
+        ],
+        [
+            InlineKeyboardButton(t("btn_wallet", lang), callback_data="user_wallet")
+        ]
+    ]
 
     keyboard = InlineKeyboardMarkup(buttons)
 
