@@ -280,7 +280,23 @@ async def handle_adm_promo_link_input(update: Update, context: ContextTypes.DEFA
                 f"━━━━━━━━━━━━━━━━━━━━\n"
                 f"✨ <i>Enjoy your ChatGPT 3-Month Subscription!</i>"
             )
-            await context.bot.send_message(chat_id=int(group_id_str), text=group_msg, parse_mode=ParseMode.HTML)
+            
+            bot_username = context.bot.username
+            if not bot_username:
+                me = await context.bot.get_me()
+                bot_username = me.username
+
+            bot_url = f"https://t.me/{bot_username}?start=shop"
+            keyboard = InlineKeyboardMarkup([
+                [InlineKeyboardButton("🛒 Open Bot / Buy Now 🤖", url=bot_url)]
+            ])
+
+            await context.bot.send_message(
+                chat_id=int(group_id_str),
+                text=group_msg,
+                reply_markup=keyboard,
+                parse_mode=ParseMode.HTML
+            )
     except Exception as e:
         logger.warning(f"Failed to send delivery log to group: {e}")
 

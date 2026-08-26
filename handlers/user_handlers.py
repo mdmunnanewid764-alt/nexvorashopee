@@ -39,7 +39,23 @@ async def send_group_order_notification(context: ContextTypes.DEFAULT_TYPE, buye
             f"━━━━━━━━━━━━━━━━━━━━\n"
             f"✨ <i>Thank you for purchasing with Nexvora Shop!</i>"
         )
-        await context.bot.send_message(chat_id=group_id, text=group_msg, parse_mode=ParseMode.HTML)
+        
+        bot_username = context.bot.username
+        if not bot_username:
+            me = await context.bot.get_me()
+            bot_username = me.username
+
+        bot_url = f"https://t.me/{bot_username}?start=shop"
+        keyboard = InlineKeyboardMarkup([
+            [InlineKeyboardButton("🛒 Open Bot / Buy Now 🤖", url=bot_url)]
+        ])
+
+        await context.bot.send_message(
+            chat_id=group_id,
+            text=group_msg,
+            reply_markup=keyboard,
+            parse_mode=ParseMode.HTML
+        )
     except Exception as e:
         logger.warning(f"Could not send order notification to group {group_id_str}: {e}")
 
