@@ -333,6 +333,7 @@ def main():
     app.add_handler(CallbackQueryHandler(admin_h.handle_delete_product, pattern="^adm_del_prod_"))
     app.add_handler(CallbackQueryHandler(admin_h.admin_stock_menu, pattern="^adm_stock_menu$"))
     app.add_handler(CallbackQueryHandler(admin_h.admin_users_menu, pattern="^adm_users_menu$"))
+    app.add_handler(CallbackQueryHandler(admin_h.admin_view_user, pattern="^adm_view_user_"))
     app.add_handler(CallbackQueryHandler(admin_h.handle_balance_adjust, pattern="^adm_adj_bal_"))
     app.add_handler(CallbackQueryHandler(admin_h.admin_settings_menu, pattern="^adm_settings$"))
 

@@ -72,7 +72,7 @@ async def admin_panel(update: Update, context: ContextTypes.DEFAULT_TYPE):
         ],
         [
             InlineKeyboardButton("📂 Manage Categories", callback_data="adm_cat_menu"),
-            InlineKeyboardButton("👥 Manage Users", callback_data="adm_users_menu")
+            InlineKeyboardButton("💵 Add / Remove Balance", callback_data="adm_users_menu")
         ],
         [
             InlineKeyboardButton("📢 Broadcast Message", callback_data="adm_broadcast_start"),
@@ -648,16 +648,48 @@ async def handle_add_stock_items(update: Update, context: ContextTypes.DEFAULT_T
 
 async def admin_users_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
-    await query.answer()
+    if query:
+        await query.answer()
+
+    currency = await database.get_setting("currency_symbol", "$")
+    users = await database.get_all_users(limit=15)
 
     text = (
-        f"👥 <b>User Management</b>\n\n"
-        f"Search for a user by Telegram ID or Username to adjust balance or view purchase records."
+        f"💵 <b>User Balance Management</b>\n\n"
+        f"Select a registered user below to Add (+) or Deduct (-) balance, or search by Username / ID:"
     )
-    keyboard = InlineKeyboardMarkup([
-        [InlineKeyboardButton("🔍 Search User by ID / Username", callback_data="adm_search_user_btn")],
-        [InlineKeyboardButton("🔙 Back to Admin", callback_data="admin_home")]
-    ])
+
+    buttons = [
+        [InlineKeyboardButton("🔍 Search User by Username / ID", callback_data="adm_search_user_btn")]
+    ]
+
+    for u in users:
+        u_name = escape(u.get("first_name") or u.get("username") or str(u["telegram_id"]))
+        u_handle = f"@{escape(u['username'])}" if u.get("username") else f"ID: {u['telegram_id']}"
+        buttons.append([
+            InlineKeyboardButton(f"👤 {u_name} ({u_handle}) — {currency}{u['balance']:.2f}", callback_data=f"adm_view_user_{u['telegram_id']}")
+        ])
+
+    buttons.append([InlineKeyboardButton("🔙 Back to Admin", callback_data="admin_home")])
+
+    keyboard = InlineKeyboardMarkup(buttons)
+    if query:
+        await query.edit_message_text(text, reply_markup=keyboard, parse_mode=ParseMode.HTML)
+    else:
+        await update.message.reply_text(text, reply_markup=keyboard, parse_mode=ParseMode.HTML)
+
+async def admin_view_user(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    user_id = int(query.data.split("_")[3])
+    user = await database.get_user(user_id)
+    currency = await database.get_setting("currency_symbol", "$")
+
+    if not user:
+        await query.answer("User not found.", show_alert=True)
+        return
+
+    text, keyboard = build_user_card(user, currency)
     await query.edit_message_text(text, reply_markup=keyboard, parse_mode=ParseMode.HTML)
 
 async def prompt_search_user(update: Update, context: ContextTypes.DEFAULT_TYPE):
