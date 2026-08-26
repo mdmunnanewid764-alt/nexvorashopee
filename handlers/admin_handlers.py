@@ -265,45 +265,6 @@ async def handle_adm_promo_link_input(update: Update, context: ContextTypes.DEFA
     )
     await update.message.reply_text(admin_success, parse_mode=ParseMode.HTML)
 
-    # Send Group Order Delivery Log
-    try:
-        group_id_str = await database.get_setting("order_log_group_id", "-1003721268860")
-        if group_id_str:
-            buyer_user = await database.get_user(order["user_id"])
-            b_name = buyer_user.get("first_name", "Customer") if buyer_user else "Customer"
-            b_user = buyer_user.get("username", "") if buyer_user else ""
-            b_handle = f"(@{escape(b_user)})" if b_user else ""
-            group_msg = (
-                f"🛍 <b>🎉 ORDER DELIVERED & ACTIVATED!</b>\n"
-                f"━━━━━━━━━━━━━━━━━━━━\n"
-                f"📦 <b>Product:</b> <code>ChatGPT 3-Month Promo Offer</code>\n"
-                f"💵 <b>Price Paid:</b> <code>{currency}{order['total_price']:.2f}</code>\n"
-                f"👤 <b>Buyer:</b> {escape(b_name)}\n"
-                f"🔖 <b>Order Code:</b> <code>{order_code}</code>\n"
-                f"📊 <b>Status:</b> <code>✅ COMPLETED & DELIVERED</code>\n"
-                f"━━━━━━━━━━━━━━━━━━━━\n"
-                f"✨ <i>Enjoy your ChatGPT 3-Month Subscription!</i>"
-            )
-            
-            bot_username = context.bot.username
-            if not bot_username:
-                me = await context.bot.get_me()
-                bot_username = me.username
-
-            bot_url = f"https://t.me/{bot_username}?start=shop"
-            keyboard = InlineKeyboardMarkup([
-                [InlineKeyboardButton("🛒 Open Bot / Buy Now 🤖", url=bot_url)]
-            ])
-
-            await context.bot.send_message(
-                chat_id=int(group_id_str),
-                text=group_msg,
-                reply_markup=keyboard,
-                parse_mode=ParseMode.HTML
-            )
-    except Exception as e:
-        logger.warning(f"Failed to send delivery log to group: {e}")
-
     context.user_data.pop("confirm_promo_order_code", None)
     return ConversationHandler.END
 

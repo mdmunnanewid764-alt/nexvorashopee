@@ -297,7 +297,7 @@ async def handle_chatgpt_promo_email_input(update: Update, context: ContextTypes
         price=promo_price,
         currency=currency,
         order_code=order_code,
-        status="PROCESSING"
+        status="COMPLETED"
     )
 
     context.user_data.pop("pending_promo_price", None)
