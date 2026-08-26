@@ -63,23 +63,23 @@ async def admin_panel(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     keyboard = InlineKeyboardMarkup([
         [
-            InlineKeyboardButton("🟩 ➕ Add Product", callback_data="adm_add_product"),
-            InlineKeyboardButton("🟦 📬 Add Stock", callback_data="adm_stock_menu")
+            InlineKeyboardButton("➕ Add Product", callback_data="adm_add_product"),
+            InlineKeyboardButton("📬 Add Stock", callback_data="adm_stock_menu")
         ],
         [
-            InlineKeyboardButton("🟦 📦 Products", callback_data="adm_list_products"),
-            InlineKeyboardButton("🟩 💲 Promo & Pricing", callback_data="adm_promo_menu")
+            InlineKeyboardButton("📦 Manage Products", callback_data="adm_list_products"),
+            InlineKeyboardButton("🔥 ChatGPT Promo Settings", callback_data="adm_promo_menu")
         ],
         [
-            InlineKeyboardButton("🟦 📂 Categories", callback_data="adm_cat_menu"),
-            InlineKeyboardButton("🟩 💵 Add Balance / Users", callback_data="adm_users_menu")
+            InlineKeyboardButton("📂 Manage Categories", callback_data="adm_cat_menu"),
+            InlineKeyboardButton("👥 Manage Users", callback_data="adm_users_menu")
         ],
         [
-            InlineKeyboardButton("🟩 📢 Broadcast Msg", callback_data="adm_broadcast_start"),
-            InlineKeyboardButton("🟦 ⚙️ Bot Settings", callback_data="adm_settings")
+            InlineKeyboardButton("📢 Broadcast Message", callback_data="adm_broadcast_start"),
+            InlineKeyboardButton("⚙️ Bot & API Settings", callback_data="adm_settings")
         ],
         [
-            InlineKeyboardButton("🟥 ◀️ Back to Customer", callback_data="user_menu")
+            InlineKeyboardButton("🔙 User Store View", callback_data="user_menu")
         ]
     ])
 
