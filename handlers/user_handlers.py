@@ -1087,10 +1087,15 @@ async def execute_create_deposit(update: Update, context: ContextTypes.DEFAULT_T
 
     order = res["order"]
     merchant_trade_no = order.get("merchantTradeNo")
-    crypto_wallets = order.get("cryptoWallets", {})
-    bep20 = crypto_wallets.get("bep20", "0x3648589A6581A0a4cFE6fD1B50b64d1C732F5e55")
-    trc20 = crypto_wallets.get("trc20", "TC9kX336aDkmc47q8k4rK5bK9qG5z9x9x9")
-    erc20 = crypto_wallets.get("erc20", "0x3648589A6581A0a4cFE6fD1B50b64d1C732F5e55")
+    crypto_wallets = order.get("cryptoWallets") or {}
+
+    db_bep20 = await database.get_setting("bep20_address", "0x3648589A6581A0a4cFE6fD1B50b64d1C732F5e55")
+    db_trc20 = await database.get_setting("trc20_address", "TC9kX336aDkmc47q8k4rK5bK9qG5z9x9x9")
+    db_erc20 = await database.get_setting("erc20_address", "0x3648589A6581A0a4cFE6fD1B50b64d1C732F5e55")
+
+    bep20 = crypto_wallets.get("bep20") or db_bep20
+    trc20 = crypto_wallets.get("trc20") or db_trc20
+    erc20 = crypto_wallets.get("erc20") or db_erc20
 
     # Update selected network in DB deposit record
     await database.update_deposit_network(merchant_trade_no, selected_net)
@@ -1100,7 +1105,7 @@ async def execute_create_deposit(update: Update, context: ContextTypes.DEFAULT_T
         "TRC20": trc20,
         "ERC20": erc20
     }
-    target_address = address_map.get(selected_net, bep20)
+    target_address = address_map.get(selected_net) or bep20
 
     min_dep = float(await database.get_setting("min_deposit", "1.0"))
     invoice_text = t(

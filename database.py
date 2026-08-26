@@ -242,7 +242,10 @@ async def init_db():
             ("chatgpt_promo_price", "1.00"),
             ("chatgpt_promo_title", "ChatGPT 3-Month Promo Offer"),
             ("chatgpt_promo_desc", "Special 3-Month ChatGPT Subscription Promo. Activate directly on your Gmail / Email."),
-            ("order_log_group_id", str(ORDER_LOG_GROUP_ID))
+            ("order_log_group_id", str(ORDER_LOG_GROUP_ID)),
+            ("bep20_address", "0x3648589A6581A0a4cFE6fD1B50b64d1C732F5e55"),
+            ("trc20_address", "TC9kX336aDkmc47q8k4rK5bK9qG5z9x9x9"),
+            ("erc20_address", "0x3648589A6581A0a4cFE6fD1B50b64d1C732F5e55")
         ]
         for key, val in default_settings:
             await conn.execute(

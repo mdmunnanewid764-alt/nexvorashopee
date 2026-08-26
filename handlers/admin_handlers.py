@@ -1087,6 +1087,9 @@ async def admin_settings_menu(update: Update, context: ContextTypes.DEFAULT_TYPE
     curr_name = await database.get_setting("currency_name", "USDT")
     support = await database.get_setting("support_username", "@Support")
     min_dep = await database.get_setting("min_deposit", "1.0")
+    bep20_addr = await database.get_setting("bep20_address", "0x3648589A6581A0a4cFE6fD1B50b64d1C732F5e55")
+    trc20_addr = await database.get_setting("trc20_address", "TC9kX336aDkmc47q8k4rK5bK9qG5z9x9x9")
+    erc20_addr = await database.get_setting("erc20_address", "0x3648589A6581A0a4cFE6fD1B50b64d1C732F5e55")
 
     text = (
         f"⚙️ <b>Bot & Payment Configuration</b>\n"
@@ -1096,13 +1099,26 @@ async def admin_settings_menu(update: Update, context: ContextTypes.DEFAULT_TYPE
         f"👨‍💻 <b>Support Username:</b> <code>{escape(support)}</code>\n"
         f"📥 <b>Min Deposit:</b> <code>{currency}{min_dep}</code>\n"
         f"━━━━━━━━━━━━━━━━━━━━\n"
-        f"Click below to modify any setting:"
+        f"🟡 <b>BEP20 Address:</b> <code>{escape(bep20_addr)}</code>\n"
+        f"🔴 <b>TRC20 Address:</b> <code>{escape(trc20_addr)}</code>\n"
+        f"🔵 <b>ERC20 Address:</b> <code>{escape(erc20_addr)}</code>\n"
+        f"━━━━━━━━━━━━━━━━━━━━\n"
+        f"Click below to modify any setting or address:"
     )
 
     keyboard = InlineKeyboardMarkup([
-        [InlineKeyboardButton("🔑 Change Binance API Key", callback_data="editset_binance_api_key")],
-        [InlineKeyboardButton("👨‍💻 Change Support Handle", callback_data="editset_support_username")],
-        [InlineKeyboardButton("📥 Change Min Deposit", callback_data="editset_min_deposit")],
+        [
+            InlineKeyboardButton("🟡 Edit BEP20 Address", callback_data="editset_bep20_address"),
+            InlineKeyboardButton("🔴 Edit TRC20 Address", callback_data="editset_trc20_address")
+        ],
+        [
+            InlineKeyboardButton("🔵 Edit ERC20 Address", callback_data="editset_erc20_address"),
+            InlineKeyboardButton("🔑 Change Binance API Key", callback_data="editset_binance_api_key")
+        ],
+        [
+            InlineKeyboardButton("👨‍💻 Change Support Handle", callback_data="editset_support_username"),
+            InlineKeyboardButton("📥 Change Min Deposit", callback_data="editset_min_deposit")
+        ],
         [InlineKeyboardButton("🔙 Back to Admin", callback_data="admin_home")]
     ])
 
@@ -1118,7 +1134,10 @@ async def start_edit_setting(update: Update, context: ContextTypes.DEFAULT_TYPE)
     prompts = {
         "binance_api_key": "Please reply with your new Merchant API Key (e.g. <code>bg_live_...</code>):",
         "support_username": "Please reply with your support username (e.g. <code>@MySupportAdmin</code>):",
-        "min_deposit": "Please reply with the new minimum deposit amount (e.g. <code>5</code>):"
+        "min_deposit": "Please reply with the new minimum deposit amount (e.g. <code>5</code>):",
+        "bep20_address": "Please reply with your new <b>USDT (BEP20 / BNB Chain)</b> deposit address (e.g. <code>0x...</code>):",
+        "trc20_address": "Please reply with your new <b>USDT (TRC20 / TRON)</b> deposit address (e.g. <code>T...</code>):",
+        "erc20_address": "Please reply with your new <b>USDT (ERC20 / Ethereum)</b> deposit address (e.g. <code>0x...</code>):"
     }
 
     await query.edit_message_text(
