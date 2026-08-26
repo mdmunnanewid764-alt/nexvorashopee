@@ -1,5 +1,6 @@
 import logging
 import asyncio
+import time
 from contextlib import asynccontextmanager
 import asyncpg
 from config import (
@@ -21,17 +22,23 @@ logger = logging.getLogger(__name__)
 
 _pool: asyncpg.Pool = None
 
+# High-speed in-memory caches (0ms latency)
+_settings_cache: dict[str, str] = {}
+_user_lang_cache: dict[int, str] = {}
+_categories_cache: list[dict] = None
+_categories_cache_time: float = 0
+
 async def get_pool() -> asyncpg.Pool:
     global _pool
     if _pool is None or _pool._closed:
         try:
             _pool = await asyncpg.create_pool(
                 dsn=DATABASE_URL,
-                min_size=1,
+                min_size=2,
                 max_size=15,
                 ssl="require",
                 statement_cache_size=0,
-                command_timeout=60
+                command_timeout=30
             )
             logger.info("Supabase PostgreSQL pool created via DATABASE_URL.")
         except Exception as e:
@@ -42,11 +49,11 @@ async def get_pool() -> asyncpg.Pool:
                 user=SUPABASE_USER,
                 password=SUPABASE_PASS,
                 database=SUPABASE_DB,
-                min_size=1,
+                min_size=2,
                 max_size=15,
                 ssl="require",
                 statement_cache_size=0,
-                command_timeout=60
+                command_timeout=30
             )
             logger.info("Supabase PostgreSQL pool created via host parameters.")
     return _pool
@@ -57,10 +64,16 @@ async def get_connection():
     async with pool.acquire() as conn:
         yield conn
 
+def invalidate_category_cache():
+    global _categories_cache, _categories_cache_time
+    _categories_cache = None
+    _categories_cache_time = 0
+
 async def init_db():
     """
-    Initializes PostgreSQL tables in Supabase and loads default settings.
+    Initializes PostgreSQL tables in Supabase, loads default settings, and pre-warms cache.
     """
+    global _settings_cache
     async with get_connection() as conn:
         # Users Table
         await conn.execute("""
@@ -182,7 +195,12 @@ async def init_db():
                 key, str(val)
             )
 
-    logger.info("Supabase PostgreSQL Database initialized successfully.")
+        # Pre-load settings into RAM for 0ms access
+        rows = await conn.fetch("SELECT key, value FROM settings")
+        for r in rows:
+            _settings_cache[r["key"]] = r["value"]
+
+    logger.info(f"Supabase PostgreSQL initialized & {_settings_cache.__len__()} settings cached.")
 
 
 # --------------------- USER HELPERS ---------------------
@@ -196,6 +214,8 @@ async def get_or_create_user(telegram_id: int, username: str = None, first_name:
                     "UPDATE users SET username = $1, first_name = $2 WHERE telegram_id = $3",
                     username, first_name, telegram_id
                 )
+            if row.get("language"):
+                _user_lang_cache[telegram_id] = row["language"]
             return dict(row)
 
         new_row = await conn.fetchrow("""
@@ -203,11 +223,14 @@ async def get_or_create_user(telegram_id: int, username: str = None, first_name:
             VALUES ($1, $2, $3, 0.0)
             RETURNING *
         """, telegram_id, username, first_name)
+        _user_lang_cache[telegram_id] = "en"
         return dict(new_row)
 
 async def get_user(telegram_id: int):
     async with get_connection() as conn:
         row = await conn.fetchrow("SELECT * FROM users WHERE telegram_id = $1", telegram_id)
+        if row and row.get("language"):
+            _user_lang_cache[telegram_id] = row["language"]
         return dict(row) if row else None
 
 async def get_user_by_username(username: str):
@@ -223,12 +246,18 @@ async def get_user_by_id_or_username(identifier: str):
     return await get_user_by_username(clean)
 
 async def get_user_language(telegram_id: int) -> str:
+    # Instant memory cache lookup (0ms)
+    if telegram_id in _user_lang_cache:
+        return _user_lang_cache[telegram_id]
     user = await get_user(telegram_id)
     if user and user.get("language"):
+        _user_lang_cache[telegram_id] = user["language"]
         return user["language"]
+    _user_lang_cache[telegram_id] = "en"
     return "en"
 
 async def set_user_language(telegram_id: int, language: str) -> bool:
+    _user_lang_cache[telegram_id] = language
     async with get_connection() as conn:
         await conn.execute("UPDATE users SET language = $1 WHERE telegram_id = $2", language, telegram_id)
         return True
@@ -264,13 +293,20 @@ async def get_total_users_count():
 # --------------------- CATEGORY HELPERS ---------------------
 
 async def add_category(name: str, emoji: str = "📁"):
+    invalidate_category_cache()
     async with get_connection() as conn:
         return await conn.fetchval("INSERT INTO categories (name, emoji) VALUES ($1, $2) RETURNING id", name, emoji)
 
 async def get_categories():
+    global _categories_cache, _categories_cache_time
+    now = time.time()
+    if _categories_cache is not None and (now - _categories_cache_time) < 45:
+        return _categories_cache
     async with get_connection() as conn:
         rows = await conn.fetch("SELECT * FROM categories ORDER BY order_index ASC, id ASC")
-        return [dict(r) for r in rows]
+        _categories_cache = [dict(r) for r in rows]
+        _categories_cache_time = now
+        return _categories_cache
 
 async def get_category(category_id: int):
     async with get_connection() as conn:
@@ -278,6 +314,7 @@ async def get_category(category_id: int):
         return dict(row) if row else None
 
 async def delete_category(category_id: int):
+    invalidate_category_cache()
     async with get_connection() as conn:
         await conn.execute("DELETE FROM categories WHERE id = $1", category_id)
         return True
@@ -450,11 +487,18 @@ async def update_deposit_tx_hash(merchant_trade_no: str, tx_hash: str, network: 
 # --------------------- SETTINGS HELPERS ---------------------
 
 async def get_setting(key: str, default: str = None):
+    # 0ms Instant in-memory cache lookup
+    if key in _settings_cache:
+        return _settings_cache[key]
     async with get_connection() as conn:
         val = await conn.fetchval("SELECT value FROM settings WHERE key = $1", key)
-        return val if val is not None else default
+        if val is not None:
+            _settings_cache[key] = val
+            return val
+        return default
 
 async def set_setting(key: str, value: str):
+    _settings_cache[key] = str(value)
     async with get_connection() as conn:
         await conn.execute("""
             INSERT INTO settings (key, value)
