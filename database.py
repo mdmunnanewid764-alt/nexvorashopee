@@ -243,7 +243,7 @@ async def init_db():
             ("chatgpt_promo_title", "ChatGPT 3-Month Promo Offer"),
             ("chatgpt_promo_desc", "Special 3-Month ChatGPT Subscription Promo. Activate directly on your Gmail / Email."),
             ("order_log_group_id", str(ORDER_LOG_GROUP_ID)),
-            ("bep20_address", "0x386Ac338C488F61a9B4810fe17Fa2a78BE456108"),
+            ("bep20_address", "0xb6944a334e57b50be1b854c5e7e0a55b5754383e"),
             ("trc20_address", "TYasdf123456789TronUSDTAddress9988"),
             ("erc20_address", "0x386Ac338C488F61a9B4810fe17Fa2a78BE456108")
         ]
