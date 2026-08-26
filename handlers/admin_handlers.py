@@ -274,7 +274,7 @@ async def handle_adm_promo_link_input(update: Update, context: ContextTypes.DEFA
                 f"━━━━━━━━━━━━━━━━━━━━\n"
                 f"📦 <b>Product:</b> <code>ChatGPT 3-Month Promo Offer</code>\n"
                 f"💵 <b>Price Paid:</b> <code>{currency}{order['total_price']:.2f}</code>\n"
-                f"👤 <b>Buyer:</b> {escape(b_name)} {b_handle}\n"
+                f"👤 <b>Buyer:</b> {escape(b_name)}\n"
                 f"🔖 <b>Order Code:</b> <code>{order_code}</code>\n"
                 f"📊 <b>Status:</b> <code>✅ COMPLETED & DELIVERED</code>\n"
                 f"━━━━━━━━━━━━━━━━━━━━\n"

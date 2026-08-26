@@ -33,7 +33,7 @@ async def send_group_order_notification(context: ContextTypes.DEFAULT_TYPE, buye
             f"━━━━━━━━━━━━━━━━━━━━\n"
             f"📦 <b>Product:</b> <code>{escape(product_name)}</code>\n"
             f"💵 <b>Price Paid:</b> <code>{currency}{price:.2f}</code>\n"
-            f"👤 <b>Buyer:</b> {buyer_safe} {username_text}\n"
+            f"👤 <b>Buyer:</b> {buyer_safe}\n"
             f"🔖 <b>Order Code:</b> <code>{order_code}</code>\n"
             f"📊 <b>Status:</b> <code>{status_badge}</code>\n"
             f"━━━━━━━━━━━━━━━━━━━━\n"
