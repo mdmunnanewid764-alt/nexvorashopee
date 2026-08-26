@@ -300,6 +300,29 @@ async def get_user_by_id_or_username(identifier: str):
         return await get_user(int(clean))
     return await get_user_by_username(clean)
 
+_banned_users_cache: set[int] = set()
+
+async def is_user_banned(telegram_id: int) -> bool:
+    if telegram_id in _banned_users_cache:
+        return True
+    async with get_connection() as conn:
+        val = await conn.fetchval("SELECT is_banned FROM users WHERE telegram_id = $1", telegram_id)
+        if val == 1:
+            _banned_users_cache.add(telegram_id)
+            return True
+        return False
+
+async def toggle_user_ban(telegram_id: int) -> int:
+    async with get_connection() as conn:
+        val = await conn.fetchval("SELECT is_banned FROM users WHERE telegram_id = $1", telegram_id)
+        new_ban = 0 if val == 1 else 1
+        await conn.execute("UPDATE users SET is_banned = $1 WHERE telegram_id = $2", new_ban, telegram_id)
+        if new_ban == 1:
+            _banned_users_cache.add(telegram_id)
+        else:
+            _banned_users_cache.discard(telegram_id)
+        return new_ban
+
 async def get_user_language(telegram_id: int) -> str:
     # Instant memory cache lookup (0ms)
     if telegram_id in _user_lang_cache:

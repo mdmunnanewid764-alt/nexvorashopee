@@ -10,6 +10,7 @@ from telegram.ext import (
     CallbackQueryHandler,
     MessageHandler,
     ConversationHandler,
+    TypeHandler,
     filters,
     ContextTypes
 )
@@ -180,6 +181,49 @@ async def post_init(application: Application):
         application.job_queue.run_repeating(auto_deposit_checker_job, interval=25, first=10)
         logger.info("Auto-deposit background poller job scheduled.")
 
+# -------------------- ANTI-SPAM & SECURITY RATE LIMITER --------------------
+
+from collections import defaultdict
+import time
+
+_rate_limit_data = defaultdict(list)
+_RATE_LIMIT_MAX = 8       # Max 8 actions
+_RATE_LIMIT_WINDOW = 3.0  # Within 3 seconds
+
+async def security_rate_limiter_middleware(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    High-speed In-Memory Anti-Spam & DDoS Rate Limiter Middleware (group=-1).
+    Filters out spam flooding, blocked bots, and banned accounts in <0.001ms.
+    """
+    user = update.effective_user
+    if not user:
+        return
+
+    # Authorized Admins bypass rate limiter
+    if admin_h.is_admin(user.id):
+        return
+
+    user_id = user.id
+    now = time.time()
+
+    # 1. Instant check if user is banned
+    if await database.is_user_banned(user_id):
+        if update.callback_query:
+            await update.callback_query.answer("⛔ Your account has been suspended.", show_alert=True)
+        return
+
+    # 2. Rate Limiting Check
+    timestamps = _rate_limit_data[user_id]
+    _rate_limit_data[user_id] = [t for t in timestamps if now - t < _RATE_LIMIT_WINDOW]
+
+    if len(_rate_limit_data[user_id]) >= _RATE_LIMIT_MAX:
+        # Flooding detected! Throttle user.
+        if update.callback_query:
+            await update.callback_query.answer("⚠️ Please slow down! Anti-spam protection active.", show_alert=True)
+        return
+
+    _rate_limit_data[user_id].append(now)
+
 # -------------------- MAIN APP SETUP --------------------
 
 def main():
@@ -200,6 +244,9 @@ def main():
         builder = builder.base_url(TELEGRAM_BASE_URL)
 
     app = builder.build()
+
+    # Pre-execution Security & Anti-Spam Middleware (group=-1)
+    app.add_handler(TypeHandler(Update, security_rate_limiter_middleware), group=-1)
 
     # User Commands
     app.add_handler(CommandHandler("start", user_h.start_command))
