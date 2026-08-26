@@ -1122,9 +1122,6 @@ async def execute_create_deposit(update: Update, context: ContextTypes.DEFAULT_T
             InlineKeyboardButton(t("btn_submit_tx", lang), callback_data=f"txstart_{merchant_trade_no}")
         ],
         [
-            InlineKeyboardButton(t("btn_check_status", lang), callback_data=f"chkdep_{merchant_trade_no}")
-        ],
-        [
             InlineKeyboardButton(t("btn_back", lang), callback_data="select_dep_crypto")
         ]
     ]
