@@ -1107,13 +1107,11 @@ async def execute_create_deposit(update: Update, context: ContextTypes.DEFAULT_T
     }
     target_address = address_map.get(selected_net) or bep20
 
-    min_dep = float(await database.get_setting("min_deposit", "1.0"))
     invoice_text = t(
         "invoice_title_single_net", lang,
         code=merchant_trade_no,
         network=selected_net,
         symbol=currency,
-        min_dep=min_dep,
         address=target_address
     )
 
