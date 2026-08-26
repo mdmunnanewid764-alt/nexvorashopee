@@ -5,7 +5,7 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes, ConversationHandler
 from telegram.constants import ParseMode
 import database
-from config import ADMIN_ID
+from config import ADMIN_ID, ADMIN_IDS
 from locales import t, LANGUAGES
 
 logger = logging.getLogger(__name__)
@@ -30,7 +30,7 @@ def escape(text: str) -> str:
     return html.escape(str(text) if text is not None else "")
 
 def is_admin(user_id: int) -> bool:
-    return user_id == ADMIN_ID
+    return user_id in ADMIN_IDS or user_id == ADMIN_ID
 
 # -------------------- ADMIN DASHBOARD --------------------
 

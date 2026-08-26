@@ -6,7 +6,7 @@ from telegram.ext import ContextTypes, ConversationHandler
 from telegram.constants import ParseMode
 import database
 from payment_service import payment_gateway, generate_qr_image
-from config import ADMIN_ID
+from config import ADMIN_ID, ADMIN_IDS
 from locales import t, LANGUAGES
 
 logger = logging.getLogger(__name__)
@@ -100,7 +100,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     lang = db_user.get("language") or "en"
     currency = await database.get_setting("currency_symbol", "$")
-    is_admin = (user.id == ADMIN_ID)
+    is_admin = (user.id in ADMIN_IDS or user.id == ADMIN_ID)
     first_name_safe = escape(user.first_name)
 
     welcome_title = t("welcome_title", lang, name=first_name_safe)

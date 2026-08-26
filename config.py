@@ -4,7 +4,8 @@ from dotenv import load_dotenv
 load_dotenv()
 
 BOT_TOKEN = os.getenv("BOT_TOKEN", "8864898167:AAH5cSW1zJEUC6MXP3c6rz7DQY1WsMDgj3U")
-ADMIN_ID = int(os.getenv("ADMIN_ID", "6575066703"))
+ADMIN_IDS = [int(x.strip()) for x in os.getenv("ADMIN_IDS", "6575066703,7282220098").split(",") if x.strip()]
+ADMIN_ID = ADMIN_IDS[0] if ADMIN_IDS else 6575066703
 BINANCE_API_BASE_URL = os.getenv("BINANCE_API_BASE_URL", "https://binance-api-yrz4.onrender.com").rstrip("/")
 BINANCE_API_KEY = os.getenv("BINANCE_API_KEY", "bg_live_your_merchant_api_key")
 CURRENCY_SYMBOL = os.getenv("CURRENCY_SYMBOL", "$")
