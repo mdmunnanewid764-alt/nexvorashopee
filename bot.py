@@ -126,7 +126,15 @@ async def status_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await update.message.reply_text(f"❌ No record found for ID: <code>{code}</code>", parse_mode=ParseMode.HTML)
 
+from telegram.error import Conflict, NetworkError, TimedOut
+
 async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE):
+    if isinstance(context.error, Conflict):
+        logger.warning("⚠️ Telegram 409 Conflict detected (brief overlap during server deployment/restart). Handled gracefully.")
+        return
+    if isinstance(context.error, (NetworkError, TimedOut)):
+        logger.warning(f"⚠️ Telegram network timeout/reconnect: {context.error}")
+        return
     logger.error(msg="Exception while handling an update:", exc_info=context.error)
 
 # -------------------- HEALTH CHECK WEB SERVER (FOR RENDER FREE TIER) --------------------
@@ -149,6 +157,12 @@ async def start_web_server():
 async def post_init(application: Application):
     await database.init_db()
     await start_web_server()
+    try:
+        await application.bot.delete_webhook(drop_pending_updates=True)
+        logger.info("Webhook cleared, polling initialized cleanly.")
+    except Exception as e:
+        logger.warning(f"Note on webhook cleanup: {e}")
+
     if application.job_queue:
         application.job_queue.run_repeating(auto_deposit_checker_job, interval=25, first=10)
         logger.info("Auto-deposit background poller job scheduled.")
