@@ -1261,14 +1261,21 @@ async def start_submit_tx(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return SUBMIT_TX_HASH
 
 def is_valid_tx_hash_format(tx_hash: str) -> bool:
-    """Checks if a string looks like a genuine blockchain transaction hash."""
+    """Checks if a string looks like a genuine blockchain transaction hash or Binance Pay / Transaction ID."""
     import re
     cleaned = tx_hash.strip().lower()
-    if len(cleaned) < 32 or len(cleaned) > 70:
+    if len(cleaned) < 5 or len(cleaned) > 100:
         return False
-    if " " in cleaned or ".." in cleaned:
+    if "\n" in cleaned or "\r" in cleaned or " " in cleaned:
         return False
-    if re.fullmatch(r"^(0x)?[0-9a-fA-F]{32,66}$", cleaned):
+    # Numeric Binance Pay Transaction IDs (e.g., 405061229575)
+    if re.fullmatch(r"^[0-9]{6,30}$", cleaned):
+        return True
+    # Hexadecimal on-chain TxHash (with or without 0x)
+    if re.fullmatch(r"^(0x)?[0-9a-fA-F]{16,80}$", cleaned):
+        return True
+    # General alphanumeric transaction identifier
+    if re.fullmatch(r"^[a-zA-Z0-9_-]{6,80}$", cleaned):
         return True
     return False
 
@@ -1300,12 +1307,13 @@ async def handle_submit_tx_hash(update: Update, context: ContextTypes.DEFAULT_TY
         order_info = status_res.get("order", {})
         status = order_info.get("status", "PENDING").upper()
         
+        paid_network = order_info.get("paidNetwork") or network
         db_dep = await database.get_deposit(trade_no)
         if status == "PAID" and db_dep and not db_dep["credited"]:
             amount = float(order_info.get("orderAmount", db_dep["order_amount"]))
             await database.update_user_balance(db_dep["user_id"], amount, is_deposit=True)
-            await database.mark_deposit_paid(trade_no, paid_network=network, tx_hash=tx_hash)
-            text = t("deposit_confirmed", lang, code=trade_no, symbol=currency, amount=amount, network=network)
+            await database.mark_deposit_paid(trade_no, paid_network=paid_network, tx_hash=tx_hash)
+            text = t("deposit_confirmed", lang, code=trade_no, symbol=currency, amount=amount, network=paid_network)
         else:
             text = t("tx_submitted_success", lang, code=trade_no, network=network, hash=escape(tx_hash))
     else:
