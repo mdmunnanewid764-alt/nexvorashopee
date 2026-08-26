@@ -18,16 +18,7 @@ def escape(text: str) -> str:
     return html.escape(str(text) if text is not None else "")
 
 async def get_main_menu_keyboard(lang: str = "en", is_admin: bool = False):
-    promo_enabled = await database.get_setting("chatgpt_promo_enabled", "1")
-    promo_price = float(await database.get_setting("chatgpt_promo_price", "1.00"))
-    currency = await database.get_setting("currency_symbol", "$")
-
-    keyboard = []
-    if promo_enabled == "1":
-        promo_btn_text = t("btn_chatgpt_promo", lang, symbol=currency, price=promo_price)
-        keyboard.append([InlineKeyboardButton(promo_btn_text, callback_data="user_chatgpt_promo")])
-
-    keyboard.extend([
+    keyboard = [
         [
             InlineKeyboardButton(t("btn_shop", lang), callback_data="user_categories"),
             InlineKeyboardButton(t("btn_wallet", lang), callback_data="user_wallet")
@@ -40,7 +31,7 @@ async def get_main_menu_keyboard(lang: str = "en", is_admin: bool = False):
             InlineKeyboardButton(t("btn_support", lang), callback_data="user_support"),
             InlineKeyboardButton(t("btn_language", lang), callback_data="user_language_menu")
         ]
-    ])
+    ]
     if is_admin:
         keyboard.append([InlineKeyboardButton(t("btn_admin", lang), callback_data="admin_home")])
     return InlineKeyboardMarkup(keyboard)
@@ -138,7 +129,7 @@ async def show_chatgpt_promo(update: Update, context: ContextTypes.DEFAULT_TYPE)
     keyboard = InlineKeyboardMarkup([
         [InlineKeyboardButton(t("btn_buy_balance", lang, symbol=currency, price=promo_price), callback_data="start_buy_promo")],
         [InlineKeyboardButton(t("btn_deposit_now", lang), callback_data="user_deposit")],
-        [InlineKeyboardButton(t("btn_back_main", lang), callback_data="user_menu")]
+        [InlineKeyboardButton(t("btn_back_categories", lang), callback_data="user_categories")]
     ])
 
     if query:
@@ -308,7 +299,23 @@ async def show_categories(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.answer()
 
     categories = await database.get_categories()
-    if not categories:
+    promo_enabled = await database.get_setting("chatgpt_promo_enabled", "1")
+    promo_price = float(await database.get_setting("chatgpt_promo_price", "1.00"))
+    currency = await database.get_setting("currency_symbol", "$")
+
+    buttons = []
+
+    # Featured Offer inside Shop
+    if promo_enabled == "1":
+        promo_btn_text = t("btn_chatgpt_promo", lang, symbol=currency, price=promo_price)
+        buttons.append([InlineKeyboardButton(promo_btn_text, callback_data="user_chatgpt_promo")])
+
+    for cat in categories:
+        products = await database.get_products_by_category(cat["id"])
+        stock_indicator = f"({len(products)})"
+        buttons.append([InlineKeyboardButton(f"{cat.get('emoji', '📁')} {cat['name']} {stock_indicator}", callback_data=f"cat_{cat['id']}")])
+
+    if not buttons:
         text = f"🛍 <b>{t('catalog_title', lang)}</b>\n\n{t('catalog_empty', lang)}"
         keyboard = InlineKeyboardMarkup([
             [InlineKeyboardButton(t("btn_back_main", lang), callback_data="user_menu")]
@@ -320,12 +327,6 @@ async def show_categories(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     text = f"🛍 <b>{t('catalog_title', lang)}</b>\n\n{t('select_cat', lang)}"
-    buttons = []
-    for cat in categories:
-        products = await database.get_products_by_category(cat["id"])
-        stock_indicator = f"({len(products)})"
-        buttons.append([InlineKeyboardButton(f"{cat.get('emoji', '📁')} {cat['name']} {stock_indicator}", callback_data=f"cat_{cat['id']}")])
-
     buttons.append([InlineKeyboardButton(t("btn_back_main", lang), callback_data="user_menu")])
     keyboard = InlineKeyboardMarkup(buttons)
 
