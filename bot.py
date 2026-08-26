@@ -272,13 +272,13 @@ def main():
     app.add_handler(ConversationHandler(
         entry_points=[CallbackQueryHandler(admin_h.start_custom_balance_adjust, pattern="^adm_custom_bal_")],
         states={admin_h.ADMIN_USER_BALANCE_ADJ: [MessageHandler(filters.TEXT & ~filters.COMMAND, admin_h.handle_custom_balance_input)]},
-        fallbacks=[CallbackQueryHandler(admin_h.admin_users_menu, pattern="^adm_users_menu$")],
+        fallbacks=[CallbackQueryHandler(admin_h.admin_users_menu, pattern="^adm_users_menu$"), CommandHandler("start", user_h.start_command)],
         per_message=False
     ))
     app.add_handler(ConversationHandler(
         entry_points=[CallbackQueryHandler(user_h.prompt_custom_deposit, pattern="^custom_deposit_btn$")],
         states={user_h.CUSTOM_DEPOSIT_AMOUNT: [MessageHandler(filters.TEXT & ~filters.COMMAND, user_h.process_custom_deposit_input)]},
-        fallbacks=[CallbackQueryHandler(user_h.show_wallet, pattern="^user_wallet$")],
+        fallbacks=[CallbackQueryHandler(user_h.show_wallet, pattern="^user_wallet$"), CommandHandler("start", user_h.start_command)],
         per_message=False
     ))
 
@@ -287,35 +287,35 @@ def main():
         states={
             user_h.SUBMIT_TX_HASH: [MessageHandler(filters.TEXT & ~filters.COMMAND, user_h.handle_submit_tx_hash)]
         },
-        fallbacks=[CallbackQueryHandler(user_h.show_wallet, pattern="^user_wallet$")],
+        fallbacks=[CallbackQueryHandler(user_h.show_wallet, pattern="^user_wallet$"), CommandHandler("start", user_h.start_command)],
         per_message=False
     ))
 
     app.add_handler(ConversationHandler(
         entry_points=[CallbackQueryHandler(user_h.handle_buy_balance, pattern="^buybal_")],
         states={user_h.MANUAL_ORDER_INPUT: [MessageHandler(filters.TEXT & ~filters.COMMAND, user_h.handle_manual_order_input)]},
-        fallbacks=[CallbackQueryHandler(user_h.show_categories, pattern="^user_categories$")],
+        fallbacks=[CallbackQueryHandler(user_h.show_categories, pattern="^user_categories$"), CommandHandler("start", user_h.start_command)],
         per_message=False
     ))
 
     app.add_handler(ConversationHandler(
         entry_points=[CallbackQueryHandler(user_h.start_buy_chatgpt_promo, pattern="^start_buy_promo$")],
         states={user_h.PROMO_EMAIL_INPUT: [MessageHandler(filters.TEXT & ~filters.COMMAND, user_h.handle_chatgpt_promo_email_input)]},
-        fallbacks=[CallbackQueryHandler(user_h.show_chatgpt_promo, pattern="^user_chatgpt_promo$")],
+        fallbacks=[CallbackQueryHandler(user_h.show_chatgpt_promo, pattern="^user_chatgpt_promo$"), CommandHandler("start", user_h.start_command)],
         per_message=False
     ))
 
     app.add_handler(ConversationHandler(
         entry_points=[CallbackQueryHandler(admin_h.start_adm_promo_confirm, pattern="^adm_promo_confirm_")],
         states={admin_h.ADMIN_PROMO_CONFIRM_LINK: [MessageHandler(filters.TEXT & ~filters.COMMAND, admin_h.handle_adm_promo_link_input)]},
-        fallbacks=[CallbackQueryHandler(admin_h.cancel_adm_promo_confirm, pattern="^adm_cancel_promo_")],
+        fallbacks=[CallbackQueryHandler(admin_h.cancel_adm_promo_confirm, pattern="^adm_cancel_promo_"), CommandHandler("start", user_h.start_command)],
         per_message=False
     ))
 
     app.add_handler(ConversationHandler(
         entry_points=[CallbackQueryHandler(admin_h.start_edit_promo_price, pattern="^adm_edit_promo_price_start$")],
         states={admin_h.EDIT_PROMO_PRICE: [MessageHandler(filters.TEXT & ~filters.COMMAND, admin_h.handle_edit_promo_price_input)]},
-        fallbacks=[CallbackQueryHandler(admin_h.admin_promo_menu, pattern="^adm_promo_menu$")],
+        fallbacks=[CallbackQueryHandler(admin_h.admin_promo_menu, pattern="^adm_promo_menu$"), CommandHandler("start", user_h.start_command)],
         per_message=False
     ))
 
@@ -325,7 +325,7 @@ def main():
             admin_h.ADD_CAT_NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, admin_h.handle_add_cat_name)],
             admin_h.ADD_CAT_EMOJI: [MessageHandler(filters.TEXT & ~filters.COMMAND, admin_h.handle_add_cat_emoji)]
         },
-        fallbacks=[CallbackQueryHandler(admin_h.admin_cat_menu, pattern="^adm_cat_menu$")],
+        fallbacks=[CallbackQueryHandler(admin_h.admin_cat_menu, pattern="^adm_cat_menu$"), CommandHandler("start", user_h.start_command)],
         per_message=False
     ))
 
@@ -342,35 +342,35 @@ def main():
                 CallbackQueryHandler(admin_h.handle_skip_prod_img, pattern="^skip_prod_img$")
             ]
         },
-        fallbacks=[CallbackQueryHandler(admin_h.admin_panel, pattern="^admin_home$")],
+        fallbacks=[CallbackQueryHandler(admin_h.admin_panel, pattern="^admin_home$"), CommandHandler("start", user_h.start_command)],
         per_message=False
     ))
 
     app.add_handler(ConversationHandler(
         entry_points=[CallbackQueryHandler(admin_h.start_add_stock, pattern="^adm_add_stock_")],
         states={admin_h.ADD_STOCK_ITEMS: [MessageHandler(filters.TEXT & ~filters.COMMAND, admin_h.handle_add_stock_items)]},
-        fallbacks=[CallbackQueryHandler(admin_h.admin_stock_menu, pattern="^adm_stock_menu$")],
+        fallbacks=[CallbackQueryHandler(admin_h.admin_stock_menu, pattern="^adm_stock_menu$"), CommandHandler("start", user_h.start_command)],
         per_message=False
     ))
 
     app.add_handler(ConversationHandler(
         entry_points=[CallbackQueryHandler(admin_h.start_broadcast, pattern="^adm_broadcast_start$")],
         states={admin_h.ADMIN_BROADCAST_MSG: [MessageHandler(filters.TEXT & ~filters.COMMAND, admin_h.handle_broadcast_message)]},
-        fallbacks=[CallbackQueryHandler(admin_h.admin_panel, pattern="^admin_home$")],
+        fallbacks=[CallbackQueryHandler(admin_h.admin_panel, pattern="^admin_home$"), CommandHandler("start", user_h.start_command)],
         per_message=False
     ))
 
     app.add_handler(ConversationHandler(
         entry_points=[CallbackQueryHandler(admin_h.prompt_search_user, pattern="^adm_search_user_btn$")],
         states={admin_h.ADMIN_USER_SEARCH: [MessageHandler(filters.TEXT & ~filters.COMMAND, admin_h.handle_user_search_input)]},
-        fallbacks=[CallbackQueryHandler(admin_h.admin_users_menu, pattern="^adm_users_menu$")],
+        fallbacks=[CallbackQueryHandler(admin_h.admin_users_menu, pattern="^adm_users_menu$"), CommandHandler("start", user_h.start_command)],
         per_message=False
     ))
 
     app.add_handler(ConversationHandler(
         entry_points=[CallbackQueryHandler(admin_h.start_edit_setting, pattern="^editset_")],
         states={admin_h.SETTING_EDIT_KEY: [MessageHandler(filters.TEXT & ~filters.COMMAND, admin_h.handle_edit_setting_val)]},
-        fallbacks=[CallbackQueryHandler(admin_h.admin_settings_menu, pattern="^adm_settings$")],
+        fallbacks=[CallbackQueryHandler(admin_h.admin_settings_menu, pattern="^adm_settings$"), CommandHandler("start", user_h.start_command)],
         per_message=False
     ))
 
@@ -381,26 +381,26 @@ def main():
             user_h.MANUAL_DEP_SENDER: [MessageHandler(filters.TEXT & ~filters.COMMAND, user_h.handle_manual_dep_sender_input)],
             user_h.MANUAL_DEP_TRXID: [MessageHandler(filters.TEXT & ~filters.COMMAND, user_h.handle_manual_dep_trxid_input)],
         },
-        fallbacks=[CallbackQueryHandler(user_h.show_deposit_options, pattern="^user_deposit$")],
+        fallbacks=[CallbackQueryHandler(user_h.show_deposit_options, pattern="^user_deposit$"), CommandHandler("start", user_h.start_command)],
         per_message=False
     ))
 
     app.add_handler(ConversationHandler(
         entry_points=[CallbackQueryHandler(admin_h.start_edit_method_details, pattern="^adm_edit_mdet_")],
         states={admin_h.EDIT_METH_DETAILS: [MessageHandler(filters.TEXT & ~filters.COMMAND, admin_h.handle_edit_method_details_input)]},
-        fallbacks=[CallbackQueryHandler(admin_h.admin_methods_menu, pattern="^adm_methods_menu$")],
+        fallbacks=[CallbackQueryHandler(admin_h.admin_methods_menu, pattern="^adm_methods_menu$"), CommandHandler("start", user_h.start_command)],
         per_message=False
     ))
     app.add_handler(ConversationHandler(
         entry_points=[CallbackQueryHandler(admin_h.start_edit_method_rate, pattern="^adm_edit_mrate_")],
         states={admin_h.EDIT_METH_RATE: [MessageHandler(filters.TEXT & ~filters.COMMAND, admin_h.handle_edit_method_rate_input)]},
-        fallbacks=[CallbackQueryHandler(admin_h.admin_methods_menu, pattern="^adm_methods_menu$")],
+        fallbacks=[CallbackQueryHandler(admin_h.admin_methods_menu, pattern="^adm_methods_menu$"), CommandHandler("start", user_h.start_command)],
         per_message=False
     ))
     app.add_handler(ConversationHandler(
         entry_points=[CallbackQueryHandler(admin_h.start_edit_method_inst, pattern="^adm_edit_minst_")],
         states={admin_h.EDIT_METH_INST: [MessageHandler(filters.TEXT & ~filters.COMMAND, admin_h.handle_edit_method_inst_input)]},
-        fallbacks=[CallbackQueryHandler(admin_h.admin_methods_menu, pattern="^adm_methods_menu$")],
+        fallbacks=[CallbackQueryHandler(admin_h.admin_methods_menu, pattern="^adm_methods_menu$"), CommandHandler("start", user_h.start_command)],
         per_message=False
     ))
 

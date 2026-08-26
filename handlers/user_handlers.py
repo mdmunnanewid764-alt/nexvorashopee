@@ -1,6 +1,7 @@
 import logging
 import time
 import html
+import asyncio
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardRemove
 from telegram.ext import ContextTypes, ConversationHandler
 from telegram.constants import ParseMode
@@ -89,6 +90,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
     Handles /start command. Registers user and shows the main menu in their chosen language.
     """
+    context.user_data.clear()
     user = update.effective_user
 
     # Register or get user
