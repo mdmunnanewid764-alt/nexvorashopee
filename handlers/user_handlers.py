@@ -107,10 +107,13 @@ async def show_language_menu(update: Update, context: ContextTypes.DEFAULT_TYPE)
     buttons = [
         [
             InlineKeyboardButton("🇬🇧 English (Default)", callback_data="setlang_en"),
-            InlineKeyboardButton("🇵🇰 اردو (Pakistan)", callback_data="setlang_ur")
+            InlineKeyboardButton("🇧🇩 বাংলা (Bangladesh)", callback_data="setlang_bn")
         ],
         [
-            InlineKeyboardButton("🇮🇷 فارسی (Iran)", callback_data="setlang_fa"),
+            InlineKeyboardButton("🇵🇰 اردو (Pakistan)", callback_data="setlang_ur"),
+            InlineKeyboardButton("🇮🇷 فارسی (Iran)", callback_data="setlang_fa")
+        ],
+        [
             InlineKeyboardButton("🇵🇸 العربية (Palestine)", callback_data="setlang_ar")
         ],
         [InlineKeyboardButton(t("btn_back_main", lang), callback_data="user_menu")]

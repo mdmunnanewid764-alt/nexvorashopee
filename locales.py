@@ -1,7 +1,8 @@
-# Multilingual Localization Strings (English, Urdu/Pakistan, Persian/Iran, Arabic/Palestine)
+# Multilingual Localization Strings (English, Bengali/Bangladesh, Urdu/Pakistan, Persian/Iran, Arabic/Palestine)
 
 LANGUAGES = {
     "en": {"name": "English", "flag": "🇬🇧"},
+    "bn": {"name": "বাংলা (Bangladesh)", "flag": "🇧🇩"},
     "ur": {"name": "اردو (Pakistan)", "flag": "🇵🇰"},
     "fa": {"name": "فارسی (Iran)", "flag": "🇮🇷"},
     "ar": {"name": "العربية (Palestine)", "flag": "🇵🇸"}
@@ -83,8 +84,82 @@ STRINGS = {
         "orders_empty": "📦 <b>My Orders</b>\n\n⚠️ You haven't made any purchases yet.",
         "profile_title": "👤 <b>User Profile</b>\n\n🆔 <b>Telegram ID:</b> <code>{id}</code>\n👤 <b>Name:</b> {name}\n🏷 <b>Username:</b> @{username}\n💰 <b>Wallet Balance:</b> <code>{symbol}{balance:.2f}</code>\n📥 <b>Total Deposited:</b> <code>{symbol}{deposited:.2f}</code>\n🛒 <b>Total Spent:</b> <code>{symbol}{spent:.2f}</code>\n🌐 <b>Language:</b> {language}\n📅 <b>Member Since:</b> <code>{date}</code>",
         "support_text": "💬 <b>Nexvora Support & Help</b>\n\nNeed assistance with an order, deposit, or custom inquiry?\n\n👨‍💻 <b>Direct Admin Support:</b> {support}\n⚡ <b>Available:</b> 24/7 Fast Response",
-        "language_menu": "🌐 <b>Select Your Language / زبان منتخب کریں / زبان خود را انتخاب کنید / اختر لغتك:</b>\n\nCurrent: <b>{current}</b>",
+        "language_menu": "🌐 <b>Select Your Language / ভাষা নির্বাচন করুন / زبان منتخب کریں / زبان خود را انتخاب کنید / اختر لغتك:</b>\n\nCurrent: <b>{current}</b>",
         "language_changed": "✅ Language changed to <b>{name}</b> successfully!"
+    },
+
+    "bn": {
+        # Bengali / Bangladesh (বাংলা)
+        "welcome_title": "নক্সভোরা শপে স্বাগতম, {name}!",
+        "welcome_sub": "প্রিমিয়াম ডিজিটাল পণ্য, সাবস্ক্রিপশন এবং ইনস্ট্যান্ট সার্ভিসের স্বয়ংক্রিয় মার্কেটপ্লেস।",
+        "balance": "আপনার বর্তমান ব্যালেন্স",
+        "user_id": "আপনার ইউজার আইডি",
+        "choose_option": "শুরু করতে নিচের যেকোনো অপশন বেছে নিন:",
+        "btn_shop": "🛍 শপ / প্রোডাক্টস",
+        "btn_wallet": "💳 আমার ওয়ালেট",
+        "btn_orders": "📦 আমার অর্ডারসমূহ",
+        "btn_profile": "👤 আমার প্রোফাইল",
+        "btn_support": "💬 সাপোর্ট ও সাহায্য",
+        "btn_language": "🌐 ভাষা পরিবর্তন (Language)",
+        "btn_admin": "🛠 এডমিন প্যানেল",
+        "btn_back_main": "🔙 মেইন মেনু",
+        "btn_back": "🔙 পিছনে যান",
+        
+        "catalog_title": "স্টোর ক্যাটালগ - ক্যাটাগরি",
+        "catalog_empty": "⚠️ এই মুহূর্তে কোনো ক্যাটাগরি উপলব্ধ নেই। অনুগ্রহ করে কিছুক্ষণ পর আবার চেক করুন!",
+        "select_cat": "প্রোডাক্ট দেখতে ক্যাটাগরি সিলেক্ট করুন:",
+        "category_empty": "⚠️ এই ক্যাটাগরিতে বর্তমানে কোনো প্রোডাক্ট নেই।",
+        "select_product": "বিস্তারিত দেখতে ও কিনতে প্রোডাক্ট বেছে নিন:",
+        "in_stock": "স্টকে আছে",
+        "out_of_stock": "স্টক শেষ",
+        "instant_service": "ইনস্ট্যান্ট সার্ভিস",
+        "available_request": "অনুরোধে উপলব্ধ",
+        "instant_delivery_info": "⚡ <b>ইনস্ট্যান্ট ডিজিটাল ডেলিভারি</b> <i>(কেনার সাথে সাথেই চ্যাটে অটোমেটিক কি/কোড পেয়ে যাবেন)</i>",
+        "manual_delivery_info": "🛠 <b>ম্যানুয়াল সার্ভিস / অর্ডার</b> <i>(এডমিন অর্ডারটি চেক করে ডেলিভারি দেবেন)</i>",
+        "price": "মূল্য",
+        "product_label": "প্রোডাক্ট",
+        "category_label": "ক্যাটাগরি",
+        "description_label": "বিবরণ",
+        "btn_buy_balance": "💳 ব্যালেন্স দিয়ে কিনুন ({symbol}{price:.2f})",
+        "btn_buy_crypto": "🪙 ডিরেক্ট ক্রিপ্টো ইনভয়েস ({symbol}{price:.2f})",
+        "btn_back_products": "🔙 প্রোডাক্ট তালিকায় ফিরুন",
+        "btn_back_categories": "🔙 ক্যাটাগরিতে ফিরুন",
+        
+        "insufficient_balance": "❌ <b>অপর্যাপ্ত ব্যালেন্স</b>\n\nপ্রয়োজনীয় মূল্য: <code>{symbol}{price:.2f}</code>\nআপনার ব্যালেন্স: <code>{symbol}{balance:.2f}</code>\nআপনার আরও <code>{symbol}{shortage:.2f}</code> প্রয়োজন।\n\n👇 Binance Pay বা ক্রিপ্টোর মাধ্যমে ব্যালেন্স যোগ করতে নিচের বাটনে চাপুন!",
+        "btn_deposit_now": "💳 এখনই ডিপোজিট করুন",
+        "purchase_success": "🎉 <b>কেনাকাটা সফল হয়েছে!</b>\n\n📦 <b>প্রোডাক্ট:</b> <code>{name}</code>\n🔖 <b>অর্ডার কোড:</b> <code>{code}</code>\n💰 <b>পরিশোধিত মূল্য:</b> <code>{symbol}{price:.2f}</code>\n\n🔑 <b>ডেলিভারিকৃত কোড / অ্যাকাউন্ট তথ্য:</b>\n<pre>{item}</pre>\n\n💡 <i>আপনি যেকোনো সময় 'আমার অর্ডারসমূহ' থেকে এটি পুনরায় দেখতে পারবেন।</i>",
+        "btn_continue_shopping": "🛍 আরও কেনাকাটা করুন",
+        "manual_prompt": "📝 <b>ম্যানুয়াল অর্ডার: {name}</b>\n\nমূল্য: <code>{symbol}{price:.2f}</code>\n\nঅর্ডারটি সম্পন্ন করতে আপনার প্রয়োজনীয় বিবরণ (যেমন: ইমেইল, ইউজারনেম বা রিকোয়ারমেন্ট) লিখে মেসেজ পাঠান:",
+        "manual_submitted": "✅ <b>অর্ডার সফলভাবে জমা দেওয়া হয়েছে!</b>\n\n📦 <b>প্রোডাক্ট:</b> <code>{name}</code>\n🔖 <b>অর্ডার কোড:</b> <code>{code}</code>\n💰 <b>পরিশোধিত মূল্য:</b> <code>{symbol}{price:.2f}</code>\n📝 <b>আপনার তথ্য:</b>\n<code>{details}</code>\n\n⏳ <i>আমাদের টিম আপনার অর্ডারটি প্রসেস করছে। সম্পন্ন হওয়া মাত্রই আপনাকে মেসেজ পাঠিয়ে জানানো হবে।</i>",
+
+        "wallet_title": "💳 <b>আমার ওয়ালেট ও ব্যালেন্স</b>\n\n💰 <b>বর্তমান ব্যালেন্স:</b> <code>{symbol}{balance:.2f} {currency}</code>\n📥 <b>মোট ডিপোজিট:</b> <code>{symbol}{deposited:.2f}</code>\n🛒 <b>মোট কেনাকাটা:</b> <code>{symbol}{spent:.2f}</code>\n\n⚡ <i>সকল ডিপোজিট Binance Pay এবং মাল্টি-চেইন ক্রিপ্টো (BEP20, TRC20, ERC20)-এর মাধ্যমে স্বয়ংক্রিয়ভাবে প্রসেস হয়।</i>",
+        "btn_deposit": "📥 ব্যালেন্স ডিপোজিট করুন",
+        "deposit_menu": "📥 <b>টাকা যোগ করুন / ব্যালেন্স ডিপোজিট</b>\n\n🪙 <b>সাপোর্টেড পেমেন্ট মেথড:</b>\n• <b>Binance Pay</b> (০% গ্যাস ফি, ইনস্ট্যান্ট)\n• <b>USDT - BEP20</b> (BNB Smart Chain)\n• <b>USDT - TRC20</b> (TRON Network)\n• <b>USDT - ERC20</b> (Ethereum)\n\n📌 <i>সর্বনিম্ন ডিপোজিট:</i> <code>{symbol}{min_dep:.2f}</code>\n\nএকটি পরিমাণ সিলেক্ট করুন বা কাস্টম পরিমাণ লিখুন:",
+        "btn_custom_amount": "✏️ কাস্টম পরিমাণ",
+        "custom_amount_prompt": "✏️ <b>কাস্টম ডিপোজিট পরিমাণ লিখুন</b>\n\nঅনুগ্রহ করে USDT তে পরিমাণ লিখে পাঠান (সর্বনিম্ন <code>{symbol}{min_dep:.2f}</code>):\n<i>(যেমন: <code>15</code> বা <code>35.50</code>)</i>",
+        "invalid_amount_min": "❌ <b>ভুল পরিমাণ দেওয়া হয়েছে!</b>\n\n⚠️ আপনি <code>{symbol}{amount:.2f}</code> লিখেছেন, কিন্তু সর্বনিম্ন ডিপোজিট হলো <code>{symbol}{min_dep:.2f}</code>।\n\n👉 অনুগ্রহ করে <code>{min_dep:.2f}</code> বা তার বেশি পরিমাণ লিখুন (যেমন: <code>10</code> বা <code>25.50</code>):",
+        "invalid_amount_number": "❌ <b>ভুল ইনপুট!</b>\n\n⚠️ কোনো অক্ষর বা চিহ্ন দেওয়া যাবে না।\n👉 অনুগ্রহ করে শুধুমাত্র সঠিক সংখ্যার পরিমাণটি লিখুন (যেমন: <code>10</code>, <code>20</code> বা <code>50</code>):",
+        "invoice_title": "🪙 <b>পেমেন্ট ইনভয়েস তৈরি হয়েছে</b>\n\n🔖 <b>ইনভয়েস ID:</b> <code>{code}</code>\n💵 <b>পরিমাণ:</b> <code>{symbol}{amount:.2f} USDT</code>\n⏳ <b>স্ট্যাটাস:</b> <code>পেমেন্টের অপেক্ষায় (INITIAL)</code>\n\n━━━━━━━━━━━━━━━━━━━━\n⚡ <b>পদ্ধতি ১: Binance Pay (০% ফি, ইনস্ট্যান্ট)</b>\nসরাসরি Binance App বা ব্রাউজারে পেমেন্ট করতে নিচের বাটনে ক্লিক করুন।\n\n🌐 <b>পদ্ধতি ২: মাল্টি-চেইন ক্রিপ্টো ট্রান্সফার</b>\nনিচের যেকোনো একটি এড্রেসে ঠিক <code>{amount:.2f} USDT</code> সেন্ড করুন:\n\n🟡 <b>BEP20 (BNB Smart Chain):</b>\n<code>{bep20}</code>\n\n🔴 <b>TRC20 (TRON Network):</b>\n<code>{trc20}</code>\n\n🔵 <b>ERC20 (Ethereum):</b>\n<code>{erc20}</code>\n━━━━━━━━━━━━━━━━━━━━\n💡 <i>ট্রান্সফার করার পর '🔄 Check Payment Status' চাপুন অথবা আপনার TxHash সাবমিট করুন।</i>",
+        "btn_pay_binance": "🚀 Binance Pay দিয়ে পেমেন্ট করুন",
+        "btn_check_status": "🔄 পেমেন্ট স্ট্যাটাস চেক করুন",
+        "btn_submit_tx": "⚡ TxHash সাবমিট করুন",
+        "btn_show_qr": "🖼 কিউআর কোড দেখুন",
+        "deposit_confirmed": "🎉 <b>ডিপোজিট সফলভাবে জমা হয়েছে!</b>\n\n🔖 <b>ইনভয়েস ID:</b> <code>{code}</code>\n💰 <b>জমা হওয়া ব্যালেন্স:</b> <code>{symbol}{amount:.2f} USDT</code>\n🌐 <b>নেটওয়ার্ক:</b> <code>{network}</code>\n\n✨ <i>আপনার ওয়ালেটে ব্যালেন্স যুক্ত করা হয়েছে। কেনাকাটার জন্য প্রস্তুত!</i>",
+        "deposit_already_credited": "✅ এই ডিপোজিটটি আগেই সফলভাবে ওয়ালেটে যুক্ত হয়েছে!",
+        "deposit_pending": "⏳ পেমেন্ট এখনও ব্লকচেইনে কনফার্ম হয়নি। আপনি যদি মাত্র ট্রান্সফার করে থাকেন, তবে ১-২ মিনিট অপেক্ষা করে আবার চেক করুন।",
+        
+        "submit_tx_select_net": "⚡ <b>অন-চেইন TxHash ভেরিফিকেশন</b>\n\n🔖 ইনভয়েস ID: <code>{code}</code>\n\n👇 আপনি কোন নেটওয়ার্কের মাধ্যমে ট্রান্সফার করেছেন তা সিলেক্ট করুন:",
+        "submit_tx_prompt": "⚡ <b>TxHash সাবমিট করুন ({network})</b>\n\n🔖 ইনভয়েস: <code>{code}</code>\n🌐 নেটওয়ার্ক: <code>{network}</code>\n\n📌 <b>সঠিক TxHash পাওয়ার নিয়ম:</b>\n১. আপনার Binance App বা ক্রিপ্টো ওয়ালেটের <b>Withdrawal History</b>-তে যান।\n২. ট্রানজ্যাকশনটির উপর ক্লিক করে <b>TxID / TxHash</b> কপি করুন (৬৪ বা ৬৬ অক্ষরের কোড)।\n৩. কপি করা কোডটি এখানে মেসেজ করুন।\n\n💡 <i>(যেমন: <code>0x78ab9c456...</code>)</i>",
+        "fake_tx_hash_warn": "❌ <b>ভুল বা নকল Transaction Hash (TxHash)!</b>\n\n⚠️ আপনি যে তথ্যটি দিয়েছেন: <code>{hash}</code> — এটি কোনো সঠিক ব্লকচেইন ট্রানজ্যাকশন হ্যাশ নয়।\n\n📌 <b>সঠিক হ্যাশ কোথায় পাবেন:</b>\n• আপনার Binance App বা ওয়ালেটের <b>Withdrawal History</b>-তে যান।\n• ডিপোজিট করা ট্রানজ্যাকশনটির আসল <b>TxID</b> কপি করে আনুন।\n\n👉 অনুগ্রহ করে সঠিক ৬৪/৬৬ অক্ষরের আসল TxHash টি পাঠান:",
+        "tx_submitted_success": "✅ <b>TxHash সফলভাবে সাবমিট হয়েছে!</b>\n\n🔖 <b>ইনভয়েস:</b> <code>{code}</code>\n🌐 <b>নেটওয়ার্ক:</b> <code>{network}</code>\n🔗 <b>TxHash:</b> <code>{hash}</code>\n\n⏳ <i>সিস্টেম ব্লকচেইন কনফার্মেশন চেক করছে। ব্লক কনফার্ম হওয়া মাত্রই ব্যালেন্স অটোমেটিক যোগ হয়ে যাবে।</i>",
+        "tx_verification_failed": "⚠️ <b>ট্রানজ্যাকশন ভেরিফিকেশন করা যায়নি!</b>\n\n❌ <b>কারণ:</b> <i>{reason}</i>\n\n💡 <b>পরামর্শ:</b>\n১. আপনি যদি মাত্র ১-২ সেকেন্ড আগে পাঠিয়ে থাকেন, তবে ব্লকচেইনে আসতে ১-২ মিনিট সময় লাগতে পারে।\n২. সঠিক নেটওয়ার্কে ও সঠিক ঠিকানায় ফান্ড পাঠিয়েছেন কিনা তা নিশ্চিত করুন।\n৩. কিছুক্ষণ পর 'পেমেন্ট স্ট্যাটাস চেক করুন' বাটনে চাপুন।",
+
+        "orders_title": "📦 <b>আপনার সাম্প্রতিক অর্ডারসমূহ:</b>\n\n",
+        "orders_empty": "📦 <b>আমার অর্ডারসমূহ</b>\n\n⚠️ আপনি এখনও কোনো কেনাকাটা করেননি।",
+        "profile_title": "👤 <b>ইউজার প্রোফাইল</b>\n\n🆔 <b>টেলিগ্রাম আইডি:</b> <code>{id}</code>\n👤 <b>নাম:</b> {name}\n🏷 <b>ইউজারনেম:</b> @{username}\n💰 <b>ওয়ালেট ব্যালেন্স:</b> <code>{symbol}{balance:.2f}</code>\n📥 <b>মোট ডিপোজিট:</b> <code>{symbol}{deposited:.2f}</code>\n🛒 <b>মোট কেনাকাটা:</b> <code>{symbol}{spent:.2f}</code>\n🌐 <b>ভাষা:</b> {language}\n📅 <b>যোগদানের তারিখ:</b> <code>{date}</code>",
+        "support_text": "💬 <b>সাপোর্ট ও সাহায্য</b>\n\nকোনো অর্ডার, ডিপোজিট বা সহায়তার প্রয়োজন হলে যোগাযোগ করুন:\n\n👨‍💻 <b>সরাসরি এডমিন সাপোর্ট:</b> {support}\n⚡ <b>সময়:</b> ২৪/৭ দ্রুত রেসপন্স",
+        "language_menu": "🌐 <b>ভাষা নির্বাচন করুন (Select Language):</b>\n\nবর্তমান ভাষা: <b>{current}</b>",
+        "language_changed": "✅ ভাষা সফলভাবে <b>{name}</b> এ পরিবর্তন করা হয়েছে!"
     },
 
     "ur": {
