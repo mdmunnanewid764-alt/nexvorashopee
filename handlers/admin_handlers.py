@@ -30,7 +30,7 @@ def escape(text: str) -> str:
     return html.escape(str(text) if text is not None else "")
 
 def is_admin(user_id: int) -> bool:
-    return user_id in ADMIN_IDS or user_id == ADMIN_ID
+    return user_id == ADMIN_ID
 
 # -------------------- ADMIN DASHBOARD --------------------
 
