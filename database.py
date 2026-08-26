@@ -29,6 +29,8 @@ _categories_cache: list[dict] = None
 _categories_cache_time: float = 0
 _products_by_cat_cache: dict[int, list[dict]] = {}
 _products_by_cat_time: dict[int, float] = {}
+_methods_cache: list[dict] = None
+_methods_cache_time: float = 0
 
 async def get_pool() -> asyncpg.Pool:
     global _pool
@@ -75,6 +77,11 @@ def invalidate_product_cache():
     global _products_by_cat_cache, _products_by_cat_time
     _products_by_cat_cache.clear()
     _products_by_cat_time.clear()
+
+def invalidate_methods_cache():
+    global _methods_cache, _methods_cache_time
+    _methods_cache = None
+    _methods_cache_time = 0
 
 async def init_db():
     """
@@ -170,10 +177,51 @@ async def init_db():
                 paid_network TEXT,
                 tx_hash TEXT,
                 credited INTEGER DEFAULT 0,
+                method_type TEXT DEFAULT 'crypto',
+                sender_number TEXT,
+                trx_id TEXT,
+                bdt_amount DOUBLE PRECISION DEFAULT 0.0,
                 created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
                 updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
             );
         """)
+
+        # Ensure columns exist on deposits table if already created
+        await conn.execute("""
+            ALTER TABLE deposits ADD COLUMN IF NOT EXISTS method_type TEXT DEFAULT 'crypto';
+            ALTER TABLE deposits ADD COLUMN IF NOT EXISTS sender_number TEXT;
+            ALTER TABLE deposits ADD COLUMN IF NOT EXISTS trx_id TEXT;
+            ALTER TABLE deposits ADD COLUMN IF NOT EXISTS bdt_amount DOUBLE PRECISION DEFAULT 0.0;
+        """)
+
+        # Payment Methods Table
+        await conn.execute("""
+            CREATE TABLE IF NOT EXISTS payment_methods (
+                id SERIAL PRIMARY KEY,
+                name TEXT NOT NULL,
+                method_type TEXT NOT NULL,
+                details TEXT,
+                instructions TEXT,
+                exchange_rate DOUBLE PRECISION DEFAULT 125.0,
+                min_deposit DOUBLE PRECISION DEFAULT 1.0,
+                is_active INTEGER DEFAULT 1,
+                order_index INTEGER DEFAULT 0
+            );
+        """)
+
+        # Seed Default Payment Methods if none exist
+        count_methods = await conn.fetchval("SELECT COUNT(*) FROM payment_methods")
+        if count_methods == 0:
+            default_methods = [
+                ("🪙 Crypto / USDT (Auto Verify)", "crypto_auto", "BEP20 / TRC20 / ERC20", "Automatic Instant API Verification via Binance Pay & Multi-Chain", 1.0, 1.0, 1, 1),
+                ("📱 bKash Personal", "manual_bkash", "017XXXXXXXX", "Send Money to Personal bKash Number", 125.0, 1.0, 1, 2),
+                ("📱 Nagad Personal", "manual_nagad", "017XXXXXXXX", "Send Money to Personal Nagad Number", 125.0, 1.0, 1, 3),
+            ]
+            for name, mtype, details, inst, rate, min_d, is_act, ord_idx in default_methods:
+                await conn.execute("""
+                    INSERT INTO payment_methods (name, method_type, details, instructions, exchange_rate, min_deposit, is_active, order_index)
+                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+                """, name, mtype, details, inst, float(rate), float(min_d), is_act, ord_idx)
 
         # Settings Table
         await conn.execute("""
@@ -463,19 +511,92 @@ async def update_order_delivery_data(order_code: str, delivery_data: str, status
         return True
 
 
-# --------------------- DEPOSIT HELPERS ---------------------
+# --------------------- PAYMENT METHODS (GATEWAYS) ---------------------
 
-async def save_deposit(merchant_trade_no: str, user_id: int, order_amount: float, currency: str, checkout_url: str, bep20_addr: str, trc20_addr: str, erc20_addr: str, status: str = "INITIAL"):
+async def get_payment_methods(active_only: bool = False) -> list[dict]:
+    global _methods_cache, _methods_cache_time
+    now = time.time()
+    if active_only and _methods_cache is not None and (now - _methods_cache_time) < 30:
+        return _methods_cache
+
+    async with get_connection() as conn:
+        if active_only:
+            rows = await conn.fetch("SELECT * FROM payment_methods WHERE is_active = 1 ORDER BY order_index ASC, id ASC")
+            res = [dict(r) for r in rows]
+            _methods_cache = res
+            _methods_cache_time = now
+            return res
+        else:
+            rows = await conn.fetch("SELECT * FROM payment_methods ORDER BY order_index ASC, id ASC")
+            return [dict(r) for r in rows]
+
+async def get_payment_method(method_id: int):
+    async with get_connection() as conn:
+        row = await conn.fetchrow("SELECT * FROM payment_methods WHERE id = $1", method_id)
+        return dict(row) if row else None
+
+async def add_payment_method(name: str, method_type: str, details: str, instructions: str, exchange_rate: float = 125.0, min_deposit: float = 1.0):
+    invalidate_methods_cache()
     async with get_connection() as conn:
         return await conn.fetchval("""
-            INSERT INTO deposits (merchant_trade_no, user_id, order_amount, currency, checkout_url, bep20_addr, trc20_addr, erc20_addr, status)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+            INSERT INTO payment_methods (name, method_type, details, instructions, exchange_rate, min_deposit, is_active, order_index)
+            VALUES ($1, $2, $3, $4, $5, $6, 1, 10)
             RETURNING id
-        """, merchant_trade_no, user_id, float(order_amount), currency, checkout_url, bep20_addr, trc20_addr, erc20_addr, status)
+        """, name, method_type, details, instructions, float(exchange_rate), float(min_deposit))
+
+async def update_payment_method(method_id: int, name: str, details: str, instructions: str, exchange_rate: float, min_deposit: float):
+    invalidate_methods_cache()
+    async with get_connection() as conn:
+        await conn.execute("""
+            UPDATE payment_methods 
+            SET name = $1, details = $2, instructions = $3, exchange_rate = $4, min_deposit = $5
+            WHERE id = $6
+        """, name, details, instructions, float(exchange_rate), float(min_deposit), method_id)
+        return True
+
+async def toggle_payment_method(method_id: int):
+    invalidate_methods_cache()
+    async with get_connection() as conn:
+        row = await conn.fetchrow("SELECT is_active FROM payment_methods WHERE id = $1", method_id)
+        if not row:
+            return False
+        new_active = 0 if row["is_active"] == 1 else 1
+        await conn.execute("UPDATE payment_methods SET is_active = $1 WHERE id = $2", new_active, method_id)
+        return new_active
+
+async def delete_payment_method(method_id: int):
+    invalidate_methods_cache()
+    async with get_connection() as conn:
+        await conn.execute("DELETE FROM payment_methods WHERE id = $1", method_id)
+        return True
+
+
+# --------------------- DEPOSIT HELPERS ---------------------
+
+async def save_deposit(merchant_trade_no: str, user_id: int, order_amount: float, currency: str, checkout_url: str, bep20_addr: str, trc20_addr: str, erc20_addr: str, status: str = "INITIAL", method_type: str = "crypto"):
+    async with get_connection() as conn:
+        return await conn.fetchval("""
+            INSERT INTO deposits (merchant_trade_no, user_id, order_amount, currency, checkout_url, bep20_addr, trc20_addr, erc20_addr, status, method_type)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+            RETURNING id
+        """, merchant_trade_no, user_id, float(order_amount), currency, checkout_url, bep20_addr, trc20_addr, erc20_addr, status, method_type)
+
+async def save_manual_deposit(merchant_trade_no: str, user_id: int, order_amount: float, currency: str, method_type: str, sender_number: str, trx_id: str, bdt_amount: float = 0.0):
+    async with get_connection() as conn:
+        return await conn.fetchval("""
+            INSERT INTO deposits (merchant_trade_no, user_id, order_amount, currency, status, method_type, sender_number, trx_id, bdt_amount)
+            VALUES ($1, $2, $3, $4, 'PENDING_MANUAL', $5, $6, $7, $8)
+            RETURNING id
+        """, merchant_trade_no, user_id, float(order_amount), currency, method_type, sender_number, trx_id, float(bdt_amount))
 
 async def get_deposit(merchant_trade_no: str):
     async with get_connection() as conn:
         row = await conn.fetchrow("SELECT * FROM deposits WHERE merchant_trade_no = $1", merchant_trade_no)
+        return dict(row) if row else None
+
+async def get_deposit_by_id(deposit_id: int):
+    async with get_connection() as conn:
+        row = await conn.fetchrow("SELECT * FROM deposits WHERE id = $1", deposit_id)
         return dict(row) if row else None
 
 async def get_pending_deposits(limit: int = 50):
@@ -491,6 +612,32 @@ async def mark_deposit_paid(merchant_trade_no: str, paid_network: str = None, tx
             WHERE merchant_trade_no = $3
         """, paid_network, tx_hash, merchant_trade_no)
         return True
+
+async def approve_manual_deposit(deposit_id: int):
+    async with get_connection() as conn:
+        row = await conn.fetchrow("SELECT * FROM deposits WHERE id = $1", deposit_id)
+        if not row or row["credited"] == 1:
+            return None
+        await conn.execute("""
+            UPDATE deposits 
+            SET status = 'PAID', credited = 1, updated_at = NOW() 
+            WHERE id = $1
+        """, deposit_id)
+        # Update user balance
+        await update_user_balance(row["user_id"], float(row["order_amount"]), is_deposit=True)
+        return dict(row)
+
+async def reject_manual_deposit(deposit_id: int):
+    async with get_connection() as conn:
+        row = await conn.fetchrow("SELECT * FROM deposits WHERE id = $1", deposit_id)
+        if not row:
+            return None
+        await conn.execute("""
+            UPDATE deposits 
+            SET status = 'REJECTED', updated_at = NOW() 
+            WHERE id = $1
+        """, deposit_id)
+        return dict(row)
 
 async def update_deposit_tx_hash(merchant_trade_no: str, tx_hash: str, network: str):
     async with get_connection() as conn:

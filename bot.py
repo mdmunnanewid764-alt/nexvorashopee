@@ -319,6 +319,36 @@ def main():
         per_message=False
     ))
 
+    app.add_handler(ConversationHandler(
+        entry_points=[CallbackQueryHandler(user_h.start_manual_deposit_conv, pattern="^start_manual_dep_")],
+        states={
+            user_h.MANUAL_DEP_AMOUNT: [MessageHandler(filters.TEXT & ~filters.COMMAND, user_h.handle_manual_dep_amount_input)],
+            user_h.MANUAL_DEP_SENDER: [MessageHandler(filters.TEXT & ~filters.COMMAND, user_h.handle_manual_dep_sender_input)],
+            user_h.MANUAL_DEP_TRXID: [MessageHandler(filters.TEXT & ~filters.COMMAND, user_h.handle_manual_dep_trxid_input)],
+        },
+        fallbacks=[CallbackQueryHandler(user_h.show_deposit_options, pattern="^user_deposit$")],
+        per_message=False
+    ))
+
+    app.add_handler(ConversationHandler(
+        entry_points=[CallbackQueryHandler(admin_h.start_edit_method_details, pattern="^adm_edit_mdet_")],
+        states={admin_h.EDIT_METH_DETAILS: [MessageHandler(filters.TEXT & ~filters.COMMAND, admin_h.handle_edit_method_details_input)]},
+        fallbacks=[CallbackQueryHandler(admin_h.admin_methods_menu, pattern="^adm_methods_menu$")],
+        per_message=False
+    ))
+    app.add_handler(ConversationHandler(
+        entry_points=[CallbackQueryHandler(admin_h.start_edit_method_rate, pattern="^adm_edit_mrate_")],
+        states={admin_h.EDIT_METH_RATE: [MessageHandler(filters.TEXT & ~filters.COMMAND, admin_h.handle_edit_method_rate_input)]},
+        fallbacks=[CallbackQueryHandler(admin_h.admin_methods_menu, pattern="^adm_methods_menu$")],
+        per_message=False
+    ))
+    app.add_handler(ConversationHandler(
+        entry_points=[CallbackQueryHandler(admin_h.start_edit_method_inst, pattern="^adm_edit_minst_")],
+        states={admin_h.EDIT_METH_INST: [MessageHandler(filters.TEXT & ~filters.COMMAND, admin_h.handle_edit_method_inst_input)]},
+        fallbacks=[CallbackQueryHandler(admin_h.admin_methods_menu, pattern="^adm_methods_menu$")],
+        per_message=False
+    ))
+
     # General Callback Queries
     app.add_handler(CallbackQueryHandler(user_h.start_command, pattern="^user_menu$"))
     app.add_handler(CallbackQueryHandler(user_h.show_categories, pattern="^user_categories$"))
@@ -329,6 +359,8 @@ def main():
 
     app.add_handler(CallbackQueryHandler(user_h.show_wallet, pattern="^user_wallet$"))
     app.add_handler(CallbackQueryHandler(user_h.show_deposit_options, pattern="^user_deposit$"))
+    app.add_handler(CallbackQueryHandler(user_h.show_crypto_deposit_menu, pattern="^select_dep_crypto$"))
+    app.add_handler(CallbackQueryHandler(user_h.show_manual_deposit_instructions, pattern="^select_dep_m_"))
     app.add_handler(CallbackQueryHandler(user_h.handle_preset_deposit, pattern="^create_dep_"))
     app.add_handler(CallbackQueryHandler(user_h.check_deposit_status, pattern="^chkdep_"))
     app.add_handler(CallbackQueryHandler(user_h.show_deposit_qr, pattern="^qrdep_"))
@@ -357,6 +389,13 @@ def main():
     app.add_handler(CallbackQueryHandler(admin_h.admin_view_user, pattern="^adm_view_user_"))
     app.add_handler(CallbackQueryHandler(admin_h.handle_balance_adjust, pattern="^adm_adj_bal_"))
     app.add_handler(CallbackQueryHandler(admin_h.admin_settings_menu, pattern="^adm_settings$"))
+
+    # Admin Payment Methods and Deposit Approvals
+    app.add_handler(CallbackQueryHandler(admin_h.admin_methods_menu, pattern="^adm_methods_menu$"))
+    app.add_handler(CallbackQueryHandler(admin_h.admin_manage_single_method, pattern="^adm_manage_meth_"))
+    app.add_handler(CallbackQueryHandler(admin_h.handle_toggle_method, pattern="^adm_toggle_meth_"))
+    app.add_handler(CallbackQueryHandler(admin_h.handle_adm_appr_deposit, pattern="^adm_appr_dep_"))
+    app.add_handler(CallbackQueryHandler(admin_h.handle_adm_rej_deposit, pattern="^adm_rej_dep_"))
 
     app.add_error_handler(error_handler)
 

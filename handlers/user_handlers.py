@@ -12,7 +12,16 @@ from locales import t, LANGUAGES
 logger = logging.getLogger(__name__)
 
 # Conversation states for User
-CUSTOM_DEPOSIT_AMOUNT, SUBMIT_TX_NETWORK, SUBMIT_TX_HASH, MANUAL_ORDER_INPUT, PROMO_EMAIL_INPUT = range(5)
+(
+    CUSTOM_DEPOSIT_AMOUNT,
+    SUBMIT_TX_NETWORK,
+    SUBMIT_TX_HASH,
+    MANUAL_ORDER_INPUT,
+    PROMO_EMAIL_INPUT,
+    MANUAL_DEP_AMOUNT,
+    MANUAL_DEP_SENDER,
+    MANUAL_DEP_TRXID
+) = range(8)
 
 def escape(text: str) -> str:
     return html.escape(str(text) if text is not None else "")
@@ -723,10 +732,49 @@ async def show_wallet(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(text, reply_markup=keyboard, parse_mode=ParseMode.HTML)
 
 async def show_deposit_options(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Renders all available payment methods (Crypto Auto, bKash, Nagad, etc.)
+    """
     query = update.callback_query
-    user_id = query.from_user.id
+    user_id = query.from_user.id if query else update.effective_user.id
     lang = await database.get_user_language(user_id)
-    await query.answer()
+    if query:
+        await query.answer()
+
+    currency = await database.get_setting("currency_symbol", "$")
+    methods = await database.get_payment_methods(active_only=True)
+
+    text = f"{t('deposit_select_method', lang)}"
+
+    keyboard_rows = []
+
+    # 1. Crypto / USDT gateway button
+    keyboard_rows.append([InlineKeyboardButton(t("btn_crypto_gateway", lang), callback_data="select_dep_crypto")])
+
+    # 2. Dynamic Manual gateways (bKash, Nagad, etc.)
+    for m in methods:
+        if m.get("method_type") == "crypto_auto":
+            continue
+        m_name = m.get("name", "Manual Deposit")
+        keyboard_rows.append([InlineKeyboardButton(f"{m_name}", callback_data=f"select_dep_m_{m['id']}")])
+
+    keyboard_rows.append([InlineKeyboardButton(t("btn_wallet", lang), callback_data="user_wallet")])
+    keyboard = InlineKeyboardMarkup(keyboard_rows)
+
+    if query:
+        await query.edit_message_text(text, reply_markup=keyboard, parse_mode=ParseMode.HTML)
+    else:
+        await update.message.reply_text(text, reply_markup=keyboard, parse_mode=ParseMode.HTML)
+
+async def show_crypto_deposit_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Shows Crypto USDT multi-chain preset amounts & custom option.
+    """
+    query = update.callback_query
+    user_id = query.from_user.id if query else update.effective_user.id
+    lang = await database.get_user_language(user_id)
+    if query:
+        await query.answer()
 
     currency = await database.get_setting("currency_symbol", "$")
     min_dep = float(await database.get_setting("min_deposit", "1.0"))
@@ -744,10 +792,218 @@ async def show_deposit_options(update: Update, context: ContextTypes.DEFAULT_TYP
             InlineKeyboardButton(f"{currency}100", callback_data="create_dep_100"),
             InlineKeyboardButton(t("btn_custom_amount", lang), callback_data="custom_deposit_btn")
         ],
-        [InlineKeyboardButton(t("btn_wallet", lang), callback_data="user_wallet")]
+        [InlineKeyboardButton(t("btn_back", lang), callback_data="user_deposit")]
+    ])
+
+    if query:
+        await query.edit_message_text(text, reply_markup=keyboard, parse_mode=ParseMode.HTML)
+    else:
+        await update.message.reply_text(text, reply_markup=keyboard, parse_mode=ParseMode.HTML)
+
+async def show_manual_deposit_instructions(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Renders manual payment instructions for bKash, Nagad, etc.
+    """
+    query = update.callback_query
+    user_id = query.from_user.id
+    lang = await database.get_user_language(user_id)
+    await query.answer()
+
+    method_id = int(query.data.split("_")[3])
+    method = await database.get_payment_method(method_id)
+
+    if not method or not method.get("is_active"):
+        await query.answer("⚠️ This payment method is currently unavailable.", show_alert=True)
+        return await show_deposit_options(update, context)
+
+    currency = await database.get_setting("currency_symbol", "$")
+    rate = float(method.get("exchange_rate", 125.0))
+    min_dep = float(method.get("min_deposit", 1.0))
+    min_bdt = min_dep * rate
+
+    text = t(
+        "manual_dep_info", lang,
+        name=escape(method.get("name", "Manual")),
+        details=escape(method.get("details", "")),
+        instructions=escape(method.get("instructions", "")),
+        rate=rate,
+        symbol=currency,
+        min_dep=min_dep,
+        min_bdt=min_bdt
+    )
+
+    keyboard = InlineKeyboardMarkup([
+        [InlineKeyboardButton(t("btn_submit_manual_dep", lang), callback_data=f"start_manual_dep_{method_id}")],
+        [InlineKeyboardButton(t("btn_back", lang), callback_data="user_deposit")]
     ])
 
     await query.edit_message_text(text, reply_markup=keyboard, parse_mode=ParseMode.HTML)
+
+# -------------------- MANUAL DEPOSIT CONVERSATION --------------------
+
+async def start_manual_deposit_conv(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    user_id = query.from_user.id
+    lang = await database.get_user_language(user_id)
+    await query.answer()
+
+    method_id = int(query.data.split("_")[3])
+    method = await database.get_payment_method(method_id)
+    if not method:
+        await query.answer("⚠️ Method not found.", show_alert=True)
+        return ConversationHandler.END
+
+    context.user_data["man_dep_method_id"] = method_id
+    currency = await database.get_setting("currency_symbol", "$")
+    rate = float(method.get("exchange_rate", 125.0))
+    min_dep = float(method.get("min_deposit", 1.0))
+
+    text = t("manual_dep_ask_amount", lang, rate=rate, symbol=currency, min_dep=min_dep)
+    keyboard = InlineKeyboardMarkup([[InlineKeyboardButton("❌ Cancel", callback_data=f"select_dep_m_{method_id}")]])
+
+    await query.edit_message_text(text, reply_markup=keyboard, parse_mode=ParseMode.HTML)
+    return MANUAL_DEP_AMOUNT
+
+async def handle_manual_dep_amount_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    lang = await database.get_user_language(user_id)
+    raw_text = update.message.text.replace("$", "").replace("৳", "").replace("BDT", "").replace("bdt", "").replace("tk", "").strip()
+
+    method_id = context.user_data.get("man_dep_method_id", 0)
+    method = await database.get_payment_method(method_id)
+    rate = float(method.get("exchange_rate", 125.0)) if method else 125.0
+    min_dep = float(method.get("min_deposit", 1.0)) if method else 1.0
+    currency = await database.get_setting("currency_symbol", "$")
+
+    try:
+        val = float(raw_text)
+        if val <= 0:
+            raise ValueError()
+
+        # If user typed high number e.g. 500, 1000 BDT, calculate USD
+        if val >= rate:
+            bdt_amount = val
+            usd_amount = round(bdt_amount / rate, 2)
+        else:
+            usd_amount = val
+            bdt_amount = round(usd_amount * rate, 2)
+
+        if usd_amount < min_dep:
+            await update.message.reply_text(
+                t("invalid_amount_min", lang, symbol=currency, amount=usd_amount, min_dep=min_dep),
+                parse_mode=ParseMode.HTML
+            )
+            return MANUAL_DEP_AMOUNT
+
+        context.user_data["man_dep_usd"] = usd_amount
+        context.user_data["man_dep_bdt"] = bdt_amount
+
+        await update.message.reply_text(t("manual_dep_ask_sender", lang), parse_mode=ParseMode.HTML)
+        return MANUAL_DEP_SENDER
+
+    except ValueError:
+        await update.message.reply_text(t("invalid_amount_number", lang), parse_mode=ParseMode.HTML)
+        return MANUAL_DEP_AMOUNT
+
+async def handle_manual_dep_sender_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    lang = await database.get_user_language(user_id)
+    sender_text = update.message.text.strip()
+
+    if len(sender_text) < 4:
+        await update.message.reply_text("⚠️ Please enter a valid sender phone number / account (e.g. <code>017XXXXXXXX</code>):", parse_mode=ParseMode.HTML)
+        return MANUAL_DEP_SENDER
+
+    context.user_data["man_dep_sender"] = sender_text
+    await update.message.reply_text(t("manual_dep_ask_trxid", lang), parse_mode=ParseMode.HTML)
+    return MANUAL_DEP_TRXID
+
+async def handle_manual_dep_trxid_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user = update.effective_user
+    user_id = user.id
+    lang = await database.get_user_language(user_id)
+    trx_id = update.message.text.strip()
+
+    method_id = context.user_data.get("man_dep_method_id", 0)
+    usd_amount = float(context.user_data.get("man_dep_usd", 1.0))
+    bdt_amount = float(context.user_data.get("man_dep_bdt", 125.0))
+    sender = context.user_data.get("man_dep_sender", "N/A")
+
+    method = await database.get_payment_method(method_id)
+    method_name = method.get("name", "Manual Gateway") if method else "Manual Gateway"
+    method_type = method.get("method_type", "manual") if method else "manual"
+
+    currency = await database.get_setting("currency_symbol", "$")
+    merchant_trade_no = f"DEP_M_{int(time.time())}_{user_id % 1000}"
+
+    dep_id = await database.save_manual_deposit(
+        merchant_trade_no=merchant_trade_no,
+        user_id=user_id,
+        order_amount=usd_amount,
+        currency="USD",
+        method_type=method_type,
+        sender_number=sender,
+        trx_id=trx_id,
+        bdt_amount=bdt_amount
+    )
+
+    # 1. Send confirmation to user
+    user_confirm_text = t(
+        "manual_dep_submitted", lang,
+        code=merchant_trade_no,
+        method=escape(method_name),
+        symbol=currency,
+        amount=usd_amount,
+        bdt=bdt_amount,
+        sender=escape(sender),
+        trx_id=escape(trx_id)
+    )
+
+    keyboard = InlineKeyboardMarkup([
+        [InlineKeyboardButton(t("btn_wallet", lang), callback_data="user_wallet")],
+        [InlineKeyboardButton(t("btn_shop", lang), callback_data="user_categories")]
+    ])
+
+    await update.message.reply_text(user_confirm_text, reply_markup=keyboard, parse_mode=ParseMode.HTML)
+
+    # 2. Send Actionable Alert to Admin with 1-Click Approve / Reject
+    try:
+        buyer_name = escape(user.first_name or "User")
+        admin_alert = (
+            f"🚨 <b>NEW MANUAL DEPOSIT REQUEST!</b>\n"
+            f"━━━━━━━━━━━━━━━━━━━━\n"
+            f"👤 <b>Buyer:</b> {buyer_name}\n"
+            f"🆔 <b>User ID:</b> <code>{user_id}</code>\n"
+            f"💳 <b>Payment Method:</b> <code>{escape(method_name)}</code>\n"
+            f"💵 <b>Amount (USD):</b> <code>{currency}{usd_amount:.2f}</code>\n"
+            f"🇧🇩 <b>Amount (BDT):</b> <code>{bdt_amount:.2f} BDT</code>\n"
+            f"📱 <b>Sender Number:</b> <code>{escape(sender)}</code>\n"
+            f"🔖 <b>TrxID / Ref:</b> <code>{escape(trx_id)}</code>\n"
+            f"🔖 <b>Deposit ID:</b> <code>{merchant_trade_no}</code>\n"
+            f"━━━━━━━━━━━━━━━━━━━━\n"
+            f"👇 <i>Admin Action: Verify payment and click below:</i>"
+        )
+
+        admin_keyboard = InlineKeyboardMarkup([
+            [InlineKeyboardButton(f"✅ Approve & Add {currency}{usd_amount:.2f}", callback_data=f"adm_appr_dep_{dep_id}")],
+            [InlineKeyboardButton("❌ Reject Deposit", callback_data=f"adm_rej_dep_{dep_id}")]
+        ])
+
+        await context.bot.send_message(
+            chat_id=ADMIN_ID,
+            text=admin_alert,
+            reply_markup=admin_keyboard,
+            parse_mode=ParseMode.HTML
+        )
+    except Exception as e:
+        logger.warning(f"Could not alert admin about manual deposit: {e}")
+
+    # Clear state
+    context.user_data.pop("man_dep_method_id", None)
+    context.user_data.pop("man_dep_usd", None)
+    context.user_data.pop("man_dep_bdt", None)
+    context.user_data.pop("man_dep_sender", None)
+    return ConversationHandler.END
 
 async def prompt_custom_deposit(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
@@ -759,7 +1015,7 @@ async def prompt_custom_deposit(update: Update, context: ContextTypes.DEFAULT_TY
     currency = await database.get_setting("currency_symbol", "$")
 
     text = t("custom_amount_prompt", lang, symbol=currency, min_dep=min_dep)
-    keyboard = InlineKeyboardMarkup([[InlineKeyboardButton("❌ Cancel", callback_data="user_deposit")]])
+    keyboard = InlineKeyboardMarkup([[InlineKeyboardButton("❌ Cancel", callback_data="select_dep_crypto")]])
     await query.edit_message_text(text, reply_markup=keyboard, parse_mode=ParseMode.HTML)
     return CUSTOM_DEPOSIT_AMOUNT
 
@@ -847,7 +1103,7 @@ async def execute_create_deposit(update: Update, context: ContextTypes.DEFAULT_T
             InlineKeyboardButton(t("btn_submit_tx", lang), callback_data=f"txstart_{merchant_trade_no}")
         ],
         [
-            InlineKeyboardButton(t("btn_wallet", lang), callback_data="user_wallet")
+            InlineKeyboardButton(t("btn_back", lang), callback_data="user_deposit")
         ]
     ]
 

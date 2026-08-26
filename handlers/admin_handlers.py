@@ -20,8 +20,11 @@ logger = logging.getLogger(__name__)
     ADMIN_BROADCAST_MSG,
     SETTING_EDIT_KEY,
     EDIT_PROMO_PRICE,
-    ADMIN_PROMO_CONFIRM_LINK
-) = range(18)
+    ADMIN_PROMO_CONFIRM_LINK,
+    EDIT_METH_DETAILS,
+    EDIT_METH_RATE,
+    EDIT_METH_INST
+) = range(21)
 
 def escape(text: str) -> str:
     return html.escape(str(text) if text is not None else "")
@@ -72,14 +75,15 @@ async def admin_panel(update: Update, context: ContextTypes.DEFAULT_TYPE):
             InlineKeyboardButton("🔥 ChatGPT Promo Settings", callback_data="adm_promo_menu")
         ],
         [
-            InlineKeyboardButton("📂 Manage Categories", callback_data="adm_cat_menu"),
-            InlineKeyboardButton("💵 Add / Remove Balance", callback_data="adm_users_menu")
+            InlineKeyboardButton("💳 Payment Gateways", callback_data="adm_methods_menu"),
+            InlineKeyboardButton("📂 Manage Categories", callback_data="adm_cat_menu")
         ],
         [
-            InlineKeyboardButton("📢 Broadcast Message", callback_data="adm_broadcast_start"),
-            InlineKeyboardButton("⚙️ Bot & API Settings", callback_data="adm_settings")
+            InlineKeyboardButton("💵 Add / Remove Balance", callback_data="adm_users_menu"),
+            InlineKeyboardButton("📢 Broadcast Message", callback_data="adm_broadcast_start")
         ],
         [
+            InlineKeyboardButton("⚙️ Bot & API Settings", callback_data="adm_settings"),
             InlineKeyboardButton("🔙 User Store View", callback_data="user_menu")
         ]
     ])
@@ -1178,3 +1182,364 @@ async def handle_edit_setting_val(update: Update, context: ContextTypes.DEFAULT_
     )
     context.user_data.pop("editing_setting_key", None)
     return ConversationHandler.END
+
+
+# -------------------- MANUAL DEPOSIT ADMIN APPROVALS --------------------
+
+async def handle_adm_appr_deposit(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Approves manual deposit, credits balance to user, sends user notification.
+    """
+    query = update.callback_query
+    user_id = query.from_user.id
+    if not is_admin(user_id):
+        await query.answer("⛔ Unauthorized.", show_alert=True)
+        return
+
+    dep_id = int(query.data.split("_")[3])
+    deposit = await database.approve_manual_deposit(dep_id)
+
+    if not deposit:
+        await query.answer("⚠️ Deposit not found or already processed.", show_alert=True)
+        return
+
+    currency = await database.get_setting("currency_symbol", "$")
+    target_user_id = deposit["user_id"]
+    target_user = await database.get_user(target_user_id)
+    user_lang = target_user.get("language", "en") if target_user else "en"
+    amount = float(deposit["order_amount"])
+    bdt_amount = float(deposit.get("bdt_amount", 0.0))
+    method_type = deposit.get("method_type", "Manual")
+    trade_no = deposit.get("merchant_trade_no", "")
+
+    await query.answer(f"✅ Approved! ${amount:.2f} credited.", show_alert=True)
+
+    # Update admin message
+    approved_text = (
+        f"{query.message.text}\n\n"
+        f"━━━━━━━━━━━━━━━━━━━━\n"
+        f"✅ <b>STATUS: APPROVED & CREDITED</b>\n"
+        f"👤 <b>Approved By:</b> Admin (<code>{user_id}</code>)\n"
+        f"💰 <b>Credited Amount:</b> <code>{currency}{amount:.2f}</code>"
+    )
+    await query.edit_message_text(approved_text, parse_mode=ParseMode.HTML)
+
+    # Send Notification to User in User's Language
+    try:
+        user_notify_text = t(
+            "deposit_approved_user", user_lang,
+            code=trade_no,
+            symbol=currency,
+            amount=amount,
+            method=method_type.upper()
+        )
+        keyboard = InlineKeyboardMarkup([
+            [InlineKeyboardButton(t("btn_wallet", user_lang), callback_data="user_wallet")],
+            [InlineKeyboardButton(t("btn_shop", user_lang), callback_data="user_categories")]
+        ])
+        await context.bot.send_message(
+            chat_id=target_user_id,
+            text=user_notify_text,
+            reply_markup=keyboard,
+            parse_mode=ParseMode.HTML
+        )
+    except Exception as e:
+        logger.warning(f"Could not send deposit approval notice to user {target_user_id}: {e}")
+
+async def handle_adm_rej_deposit(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Rejects manual deposit and notifies user.
+    """
+    query = update.callback_query
+    user_id = query.from_user.id
+    if not is_admin(user_id):
+        await query.answer("⛔ Unauthorized.", show_alert=True)
+        return
+
+    dep_id = int(query.data.split("_")[3])
+    deposit = await database.reject_manual_deposit(dep_id)
+
+    if not deposit:
+        await query.answer("⚠️ Deposit not found.", show_alert=True)
+        return
+
+    target_user_id = deposit["user_id"]
+    target_user = await database.get_user(target_user_id)
+    user_lang = target_user.get("language", "en") if target_user else "en"
+    trade_no = deposit.get("merchant_trade_no", "")
+    method_type = deposit.get("method_type", "Manual")
+
+    await query.answer("❌ Deposit rejected.", show_alert=True)
+
+    # Update admin message
+    rejected_text = (
+        f"{query.message.text}\n\n"
+        f"━━━━━━━━━━━━━━━━━━━━\n"
+        f"❌ <b>STATUS: REJECTED</b>\n"
+        f"👤 <b>Rejected By:</b> Admin (<code>{user_id}</code>)"
+    )
+    await query.edit_message_text(rejected_text, parse_mode=ParseMode.HTML)
+
+    # Send Notification to User
+    try:
+        user_notify_text = t(
+            "deposit_rejected_user", user_lang,
+            code=trade_no,
+            method=method_type.upper()
+        )
+        keyboard = InlineKeyboardMarkup([
+            [InlineKeyboardButton(t("btn_support", user_lang), callback_data="user_support")]
+        ])
+        await context.bot.send_message(
+            chat_id=target_user_id,
+            text=user_notify_text,
+            reply_markup=keyboard,
+            parse_mode=ParseMode.HTML
+        )
+    except Exception as e:
+        logger.warning(f"Could not send deposit reject notice to user {target_user_id}: {e}")
+
+
+# -------------------- PAYMENT METHODS (GATEWAYS) MANAGEMENT --------------------
+
+async def admin_methods_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Lists all payment gateways (Crypto, bKash, Nagad, etc.) for admin to manage.
+    """
+    query = update.callback_query
+    user_id = query.from_user.id if query else update.effective_user.id
+    if not is_admin(user_id):
+        return
+
+    if query:
+        await query.answer()
+
+    methods = await database.get_payment_methods(active_only=False)
+
+    text = (
+        f"💳 <b>Payment Gateways & Deposit Configuration</b>\n"
+        f"━━━━━━━━━━━━━━━━━━━━\n"
+        f"Manage all payment methods (Crypto Auto, bKash, Nagad, etc.).\n"
+        f"Tap on any method to edit number, exchange rate, instructions, or toggle on/off:\n"
+    )
+
+    buttons = []
+    for m in methods:
+        status_icon = "🟢" if m.get("is_active") == 1 else "🔴"
+        rate_info = f" (1$ = {m.get('exchange_rate', 125.0):.0f} BDT)" if m.get("method_type") != "crypto_auto" else ""
+        btn_title = f"{status_icon} {m.get('name')}{rate_info}"
+        buttons.append([InlineKeyboardButton(btn_title, callback_data=f"adm_manage_meth_{m['id']}")])
+
+    buttons.append([InlineKeyboardButton("🔙 Back to Admin", callback_data="admin_home")])
+    keyboard = InlineKeyboardMarkup(buttons)
+
+    if query:
+        await query.edit_message_text(text, reply_markup=keyboard, parse_mode=ParseMode.HTML)
+    else:
+        await update.message.reply_text(text, reply_markup=keyboard, parse_mode=ParseMode.HTML)
+
+async def admin_manage_single_method(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Shows detail of a single method with options to edit number, rate, instructions, or toggle.
+    """
+    query = update.callback_query
+    user_id = query.from_user.id
+    if not is_admin(user_id):
+        return
+
+    await query.answer()
+    method_id = int(query.data.split("_")[3])
+    method = await database.get_payment_method(method_id)
+
+    if not method:
+        await query.answer("⚠️ Method not found.", show_alert=True)
+        return await admin_methods_menu(update, context)
+
+    status_str = "🟢 Active (Visible to Users)" if method.get("is_active") == 1 else "🔴 Disabled (Hidden from Users)"
+
+    text = (
+        f"💳 <b>Manage Gateway: {escape(method.get('name'))}</b>\n"
+        f"━━━━━━━━━━━━━━━━━━━━\n"
+        f"📊 <b>Status:</b> {status_str}\n"
+        f"🏷 <b>Type:</b> <code>{method.get('method_type')}</code>\n"
+        f"📌 <b>Account Details / Number:</b> <code>{escape(method.get('details', 'N/A'))}</code>\n"
+        f"💵 <b>Exchange Rate:</b> <code>1 USD = {method.get('exchange_rate', 125.0):.2f} BDT</code>\n"
+        f"📥 <b>Min Deposit:</b> <code>${method.get('min_deposit', 1.0):.2f}</code>\n"
+        f"📝 <b>Instructions:</b> <i>{escape(method.get('instructions', 'N/A'))}</i>\n"
+        f"━━━━━━━━━━━━━━━━━━━━\n"
+        f"👇 <i>Select an action to modify:</i>"
+    )
+
+    toggle_btn_text = "🔴 Disable Gateway" if method.get("is_active") == 1 else "🟢 Enable Gateway"
+
+    buttons = [
+        [InlineKeyboardButton(toggle_btn_text, callback_data=f"adm_toggle_meth_{method_id}")],
+        [
+            InlineKeyboardButton("✏️ Edit Number / Details", callback_data=f"adm_edit_mdet_{method_id}"),
+            InlineKeyboardButton("💵 Edit Exchange Rate", callback_data=f"adm_edit_mrate_{method_id}")
+        ],
+        [
+            InlineKeyboardButton("📝 Edit Instructions", callback_data=f"adm_edit_minst_{method_id}")
+        ],
+        [InlineKeyboardButton("🔙 Back to Gateways", callback_data="adm_methods_menu")]
+    ]
+
+    await query.edit_message_text(text, reply_markup=InlineKeyboardMarkup(buttons), parse_mode=ParseMode.HTML)
+
+async def handle_toggle_method(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    if not is_admin(query.from_user.id):
+        return
+
+    method_id = int(query.data.split("_")[3])
+    new_status = await database.toggle_payment_method(method_id)
+    status_msg = "🟢 Method Enabled" if new_status == 1 else "🔴 Method Disabled"
+    await query.answer(status_msg, show_alert=True)
+    return await admin_manage_single_method(update, context)
+
+# -------------------- EDIT METHOD CONVERSATIONS --------------------
+
+async def start_edit_method_details(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    if not is_admin(query.from_user.id):
+        return
+
+    await query.answer()
+    method_id = int(query.data.split("_")[3])
+    method = await database.get_payment_method(method_id)
+    if not method:
+        return ConversationHandler.END
+
+    context.user_data["editing_meth_id"] = method_id
+    text = (
+        f"✏️ <b>Edit Number / Details for {escape(method.get('name'))}</b>\n\n"
+        f"Current: <code>{escape(method.get('details', 'N/A'))}</code>\n\n"
+        f"👉 Please reply with the new Phone Number / Account Details (e.g. <code>017XXXXXXXX (Personal)</code>):"
+    )
+    keyboard = InlineKeyboardMarkup([[InlineKeyboardButton("❌ Cancel", callback_data=f"adm_manage_meth_{method_id}")]])
+    await query.edit_message_text(text, reply_markup=keyboard, parse_mode=ParseMode.HTML)
+    return EDIT_METH_DETAILS
+
+async def handle_edit_method_details_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    new_details = update.message.text.strip()
+    method_id = context.user_data.get("editing_meth_id")
+    if not method_id:
+        return ConversationHandler.END
+
+    method = await database.get_payment_method(method_id)
+    if method:
+        await database.update_payment_method(
+            method_id=method_id,
+            name=method["name"],
+            details=new_details,
+            instructions=method["instructions"],
+            exchange_rate=method["exchange_rate"],
+            min_deposit=method["min_deposit"]
+        )
+
+    await update.message.reply_text(
+        f"✅ Account details updated to: <code>{escape(new_details)}</code>",
+        reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Manage Gateway", callback_data=f"adm_manage_meth_{method_id}")]])
+    )
+    context.user_data.pop("editing_meth_id", None)
+    return ConversationHandler.END
+
+async def start_edit_method_rate(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    if not is_admin(query.from_user.id):
+        return
+
+    await query.answer()
+    method_id = int(query.data.split("_")[3])
+    method = await database.get_payment_method(method_id)
+    if not method:
+        return ConversationHandler.END
+
+    context.user_data["editing_meth_id"] = method_id
+    text = (
+        f"💵 <b>Edit Exchange Rate for {escape(method.get('name'))}</b>\n\n"
+        f"Current Rate: <code>1 USD = {method.get('exchange_rate', 125.0):.2f} BDT</code>\n\n"
+        f"👉 Please reply with the new exchange rate in BDT per 1 USD (e.g. <code>125.00</code> or <code>130.00</code>):"
+    )
+    keyboard = InlineKeyboardMarkup([[InlineKeyboardButton("❌ Cancel", callback_data=f"adm_manage_meth_{method_id}")]])
+    await query.edit_message_text(text, reply_markup=keyboard, parse_mode=ParseMode.HTML)
+    return EDIT_METH_RATE
+
+async def handle_edit_method_rate_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    raw_text = update.message.text.strip()
+    method_id = context.user_data.get("editing_meth_id")
+    if not method_id:
+        return ConversationHandler.END
+
+    try:
+        rate = float(raw_text)
+        if rate <= 0:
+            raise ValueError()
+
+        method = await database.get_payment_method(method_id)
+        if method:
+            await database.update_payment_method(
+                method_id=method_id,
+                name=method["name"],
+                details=method["details"],
+                instructions=method["instructions"],
+                exchange_rate=rate,
+                min_deposit=method["min_deposit"]
+            )
+
+        await update.message.reply_text(
+            f"✅ Exchange rate updated to: <code>1 USD = {rate:.2f} BDT</code>",
+            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Manage Gateway", callback_data=f"adm_manage_meth_{method_id}")]])
+        )
+        context.user_data.pop("editing_meth_id", None)
+        return ConversationHandler.END
+
+    except ValueError:
+        await update.message.reply_text("⚠️ Please enter a valid number (e.g. <code>125.00</code>):", parse_mode=ParseMode.HTML)
+        return EDIT_METH_RATE
+
+async def start_edit_method_inst(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    if not is_admin(query.from_user.id):
+        return
+
+    await query.answer()
+    method_id = int(query.data.split("_")[3])
+    method = await database.get_payment_method(method_id)
+    if not method:
+        return ConversationHandler.END
+
+    context.user_data["editing_meth_id"] = method_id
+    text = (
+        f"📝 <b>Edit Instructions for {escape(method.get('name'))}</b>\n\n"
+        f"Current: <i>{escape(method.get('instructions', 'N/A'))}</i>\n\n"
+        f"👉 Please reply with the new deposit instructions for users:"
+    )
+    keyboard = InlineKeyboardMarkup([[InlineKeyboardButton("❌ Cancel", callback_data=f"adm_manage_meth_{method_id}")]])
+    await query.edit_message_text(text, reply_markup=keyboard, parse_mode=ParseMode.HTML)
+    return EDIT_METH_INST
+
+async def handle_edit_method_inst_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    new_inst = update.message.text.strip()
+    method_id = context.user_data.get("editing_meth_id")
+    if not method_id:
+        return ConversationHandler.END
+
+    method = await database.get_payment_method(method_id)
+    if method:
+        await database.update_payment_method(
+            method_id=method_id,
+            name=method["name"],
+            details=method["details"],
+            instructions=new_inst,
+            exchange_rate=method["exchange_rate"],
+            min_deposit=method["min_deposit"]
+        )
+
+    await update.message.reply_text(
+        f"✅ Instructions updated successfully!",
+        reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Manage Gateway", callback_data=f"adm_manage_meth_{method_id}")]])
+    )
+    context.user_data.pop("editing_meth_id", None)
+    return ConversationHandler.END
+
