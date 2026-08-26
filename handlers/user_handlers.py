@@ -790,44 +790,19 @@ async def show_crypto_network_selection(update: Update, context: ContextTypes.DE
     else:
         await update.message.reply_text(text, reply_markup=keyboard, parse_mode=ParseMode.HTML)
 
-async def show_crypto_deposit_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def handle_select_crypto_network(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
-    Shows preset amounts & custom option for the chosen crypto network.
+    User selected a network (BEP20 / TRC20 / ERC20) -> immediately generates deposit invoice and shows address!
     """
     query = update.callback_query
-    user_id = query.from_user.id if query else update.effective_user.id
-    lang = await database.get_user_language(user_id)
-    
-    if query and query.data.startswith("selnet_"):
-        await query.answer()
-        network = query.data.split("_")[1].upper()
-        context.user_data["crypto_net"] = network
-    else:
-        network = context.user_data.get("crypto_net", "BEP20")
+    user_id = query.from_user.id
+    await query.answer()
 
-    currency = await database.get_setting("currency_symbol", "$")
-    min_dep = float(await database.get_setting("min_deposit", "1.0"))
+    network = query.data.split("_")[1].upper()
+    context.user_data["crypto_net"] = network
 
-    text = t("deposit_menu", lang, network=network, symbol=currency, min_dep=min_dep)
-
-    keyboard = InlineKeyboardMarkup([
-        [
-            InlineKeyboardButton(f"{currency}5", callback_data="create_dep_5"),
-            InlineKeyboardButton(f"{currency}10", callback_data="create_dep_10"),
-            InlineKeyboardButton(f"{currency}25", callback_data="create_dep_25")
-        ],
-        [
-            InlineKeyboardButton(f"{currency}50", callback_data="create_dep_50"),
-            InlineKeyboardButton(f"{currency}100", callback_data="create_dep_100"),
-            InlineKeyboardButton(t("btn_custom_amount", lang), callback_data="custom_deposit_btn")
-        ],
-        [InlineKeyboardButton(t("btn_back", lang), callback_data="select_dep_crypto")]
-    ])
-
-    if query:
-        await query.edit_message_text(text, reply_markup=keyboard, parse_mode=ParseMode.HTML)
-    else:
-        await update.message.reply_text(text, reply_markup=keyboard, parse_mode=ParseMode.HTML)
+    # Direct invoice generation with auto amount detection
+    return await execute_create_deposit(update, context, amount=1.0, user_id=user_id, is_callback=True)
 
 async def show_manual_deposit_instructions(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
@@ -1127,12 +1102,13 @@ async def execute_create_deposit(update: Update, context: ContextTypes.DEFAULT_T
     }
     target_address = address_map.get(selected_net, bep20)
 
+    min_dep = float(await database.get_setting("min_deposit", "1.0"))
     invoice_text = t(
         "invoice_title_single_net", lang,
         code=merchant_trade_no,
         network=selected_net,
         symbol=currency,
-        amount=amount,
+        min_dep=min_dep,
         address=target_address
     )
 

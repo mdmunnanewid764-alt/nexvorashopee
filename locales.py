@@ -74,14 +74,9 @@ STRINGS = {
         
         # Crypto Networks Selection
         "select_crypto_network": "🌐 <b>Select USDT Blockchain Network</b>\n\nPlease select the blockchain network you want to deposit with:",
-        "deposit_menu": "📥 <b>Deposit Amount ({network})</b>\n\n📌 <b>Selected Network:</b> <code>{network}</code>\n📌 <b>Minimum Deposit:</b> <code>{symbol}{min_dep:.2f}</code>\n\nSelect a preset amount or enter custom:",
-        "btn_custom_amount": "✏️ Custom Amount",
-        "custom_amount_prompt": "✏ <b>Enter Custom Deposit Amount</b>\n\nNetwork: <code>{network}</code>\nPlease reply with the exact amount in USDT (minimum <code>{symbol}{min_dep:.2f}</code>):\n<i>(Example: <code>15</code> or <code>35.50</code>)</i>",
-        "invalid_amount_min": "❌ <b>Invalid Amount!</b>\n\n⚠️ You entered <code>{symbol}{amount:.2f}</code>, but minimum deposit is <code>{symbol}{min_dep:.2f}</code>.\n\n👉 Please enter <code>{min_dep:.2f}</code> or more (e.g. <code>10</code> or <code>25.50</code>):",
-        "invalid_amount_number": "❌ <b>Invalid Input!</b>\n\n⚠️ Letters or special symbols are not allowed.\n👉 Please enter a valid number only (e.g. <code>10</code>, <code>20</code> or <code>50</code>):",
         
-        # Single Network Crypto Invoice
-        "invoice_title_single_net": "🪙 <b>Payment Invoice Generated</b>\n\n🔖 <b>Invoice ID:</b> <code>{code}</code>\n🌐 <b>Network:</b> <code>{network}</code>\n💵 <b>Amount to Send:</b> <code>{symbol}{amount:.2f} USDT</code>\n⏳ <b>Status:</b> <code>Awaiting Payment (INITIAL)</code>\n\n━━━━━━━━━━━━━━━━━━━━\n📌 <b>{network} Transfer Address:</b>\n<code>{address}</code> <i>(Tap to copy)</i>\n━━━━━━━━━━━━━━━━━━━━\n💡 <i>After sending, click '⚡ Submit TxHash' below for instant automatic verification & balance credit!</i>",
+        # Direct Network Crypto Invoice
+        "invoice_title_single_net": "🪙 <b>USDT ({network}) Deposit Address</b>\n\n🔖 <b>Invoice ID:</b> <code>{code}</code>\n🌐 <b>Network:</b> <code>{network}</code>\n\n📌 <b>{network} Transfer Address:</b>\n<code>{address}</code> <i>(Tap to copy)</i>\n\n━━━━━━━━━━━━━━━━━━━━\n💡 <b>Deposit Instructions:</b>\n1. Send <b>ANY amount</b> of USDT to this address (Minimum: <code>{symbol}{min_dep:.2f}</code>).\n2. After sending, click <b>'⚡ Submit TxHash / Verify'</b> below.\n3. The system will automatically detect the exact amount you sent from your TxHash and credit it to your wallet instantly!\n━━━━━━━━━━━━━━━━━━━━",
         "btn_check_status": "🔄 Check Payment Status",
         "btn_submit_tx": "⚡ Submit TxHash / Verify",
         "deposit_confirmed": "🎉 <b>Deposit Confirmed & Credited!</b>\n\n🔖 <b>Invoice ID:</b> <code>{code}</code>\n💰 <b>Amount Credited:</b> <code>{symbol}{amount:.2f} USDT</code>\n🌐 <b>Network:</b> <code>{network}</code>\n\n✨ <i>Your wallet balance has been updated. Happy shopping!</i>",
@@ -178,14 +173,9 @@ STRINGS = {
         
         # Crypto Networks Selection
         "select_crypto_network": "🌐 <b>USDT ব্লকচেইন নেটওয়ার্ক বেছে নিন</b>\n\nআপনি কোন নেটওয়ার্কের মাধ্যমে USDT পাঠাতে চান তা সিলেক্ট করুন:",
-        "deposit_menu": "📥 <b>ডিপোজিট পরিমাণ ({network})</b>\n\n📌 <b>সিলেক্টেড নেটওয়ার্ক:</b> <code>{network}</code>\n📌 <b>সর্বনিম্ন ডিপোজিট:</b> <code>{symbol}{min_dep:.2f}</code>\n\nএকটি পরিমাণ সিলেক্ট করুন বা কাস্টম পরিমাণ লিখুন:",
-        "btn_custom_amount": "✏️ কাস্টম পরিমাণ",
-        "custom_amount_prompt": "✏️ <b>কাস্টম ডিপোজিট পরিমাণ লিখুন</b>\n\nনেটওয়ার্ক: <code>{network}</code>\nঅনুগ্রহ করে USDT তে পরিমাণ লিখে পাঠান (সর্বনিম্ন <code>{symbol}{min_dep:.2f}</code>):\n<i>(যেমন: <code>15</code> বা <code>35.50</code>)</i>",
-        "invalid_amount_min": "❌ <b>ভুল পরিমাণ দেওয়া হয়েছে!</b>\n\n⚠️ আপনি <code>{symbol}{amount:.2f}</code> লিখেছেন, কিন্তু সর্বনিম্ন ডিপোজিট হলো <code>{symbol}{min_dep:.2f}</code>।\n\n👉 অনুগ্রহ করে <code>{min_dep:.2f}</code> বা তার বেশি পরিমাণ লিখুন (যেমন: <code>10</code> বা <code>25.50</code>):",
-        "invalid_amount_number": "❌ <b>ভুল ইনপুট!</b>\n\n⚠️ কোনো অক্ষর বা চিহ্ন দেওয়া যাবে না।\n👉 অনুগ্রহ করে শুধুমাত্র সঠিক সংখ্যার পরিমাণটি লিখুন (যেমন: <code>10</code>, <code>20</code> বা <code>50</code>):",
         
-        # Single Network Crypto Invoice
-        "invoice_title_single_net": "🪙 <b>পেমেন্ট ইনভয়েস তৈরি হয়েছে</b>\n\n🔖 <b>ইনভয়েস ID:</b> <code>{code}</code>\n🌐 <b>নেটওয়ার্ক:</b> <code>{network}</code>\n💵 <b>পাঠানোর পরিমাণ:</b> <code>{symbol}{amount:.2f} USDT</code>\n⏳ <b>স্ট্যাটাস:</b> <code>পেমেন্টের অপেক্ষায় (INITIAL)</code>\n\n━━━━━━━━━━━━━━━━━━━━\n📌 <b>{network} ডিপোজিট এড্রেস:</b>\n<code>{address}</code> <i>(কপি করতে ট্যাপ করুন)</i>\n━━━━━━━━━━━━━━━━━━━━\n💡 <i>টাকা পাঠানোর পর নিচে '⚡ Submit TxHash' চাপুন — অটোমেটিক ভেরিফাই হয়ে সাথে সাথে ব্যালেন্স জমা হবে!</i>",
+        # Direct Network Crypto Invoice
+        "invoice_title_single_net": "🪙 <b>USDT ({network}) ডিপোজিট এড্রেস</b>\n\n🔖 <b>ইনভয়েস ID:</b> <code>{code}</code>\n🌐 <b>নেটওয়ার্ক:</b> <code>{network}</code>\n\n📌 <b>{network} ডিপোজিট এড্রেস:</b>\n<code>{address}</code> <i>(কপি করতে ট্যাপ করুন)</i>\n\n━━━━━━━━━━━━━━━━━━━━\n💡 <b>ডিপোজিট নিয়মাবলী:</b>\n১. এই এড্রেসে আপনার ইচ্ছেমতো <b>যেকোনো পরিমাণ USDT</b> পাঠান (সর্বনিম্ন: <code>{symbol}{min_dep:.2f}</code>)।\n২. পাঠানো শেষ হলে নিচে <b>'⚡ Submit TxHash / Verify'</b> বাটনে চাপুন।\n৩. আপনার ট্রানজ্যাকশন TxHash দিলেই সিস্টেম অটোমেটিক চেক করে যত ডলার পাঠিয়েছেন হুবহু তত ডলার আপনার ওয়ালেটে সাথে সাথে যুক্ত করে দেবে!\n━━━━━━━━━━━━━━━━━━━━",
         "btn_check_status": "🔄 পেমেন্ট স্ট্যাটাস চেক করুন",
         "btn_submit_tx": "⚡ Submit TxHash / Verify",
         "deposit_confirmed": "🎉 <b>ডিপোজিট সফলভাবে জমা হয়েছে!</b>\n\n🔖 <b>ইনভয়েস ID:</b> <code>{code}</code>\n💰 <b>জমা হওয়া ব্যালেন্স:</b> <code>{symbol}{amount:.2f} USDT</code>\n🌐 <b>নেটওয়ার্ক:</b> <code>{network}</code>\n\n✨ <i>আপনার ওয়ালেটে ব্যালেন্স যুক্ত করা হয়েছে। কেনাকাটার জন্য প্রস্তুত!</i>",
@@ -278,13 +268,8 @@ STRINGS = {
         "btn_crypto_gateway": "🪙 USDT / کرپٹو (فوری خودکار)",
         
         "select_crypto_network": "🌐 <b>USDT بلاک چین نیٹ ورک منتخب کریں</b>\n\nبراہ کرم ادائیگی کے لیے نیٹ ورک منتخب کریں:",
-        "deposit_menu": "📥 <b>ڈپازٹ رقم ({network})</b>\n\n📌 <b>منتخب کردہ نیٹ ورک:</b> <code>{network}</code>\n📌 <b>کم از کم ڈپازٹ:</b> <code>{symbol}{min_dep:.2f}</code>\n\nکوئی رقم منتخب کریں یا کسٹم رقم درج کریں:",
-        "btn_custom_amount": "✏️ کسٹم رقم",
-        "custom_amount_prompt": "✏️ <b>کسٹم ڈپازٹ رقم درج کریں</b>\n\nنیٹ ورک: <code>{network}</code>\nبراہ کرم USDT میں رقم درج کریں (کم از کم <code>{symbol}{min_dep:.2f}</code>):\n<i>(مثال: <code>15</code> یا <code>35.50</code>)</i>",
-        "invalid_amount_min": "❌ <b>غلط رقم!</b>\n\n⚠️ آپ نے <code>{symbol}{amount:.2f}</code> درج کیا ہے، لیکن کم از کم ڈپازٹ <code>{symbol}{min_dep:.2f}</code> ہے۔\n\n👉 براہ کرم <code>{min_dep:.2f}</code> یا اس سے زیادہ درج کریں (مثلاً: <code>10</code> یا <code>25.50</code>):",
-        "invalid_amount_number": "❌ <b>غلط ان پٹ!</b>\n\n⚠️ حروف یا علامات کی اجازت نہیں ہے۔\n👉 براہ کرم صرف درست نمبر درج کریں (مثلاً: <code>10</code>, <code>20</code> یا <code>50</code>):",
         
-        "invoice_title_single_net": "🪙 <b>پیمنٹ انوائس تیار ہے</b>\n\n🔖 <b>انوائس ID:</b> <code>{code}</code>\n🌐 <b>نیٹ ورک:</b> <code>{network}</code>\n💵 <b>رقم:</b> <code>{symbol}{amount:.2f} USDT</code>\n⏳ <b>حیثیت:</b> <code>ادائیگی کا انتظار (INITIAL)</code>\n\n━━━━━━━━━━━━━━━━━━━━\n📌 <b>{network} ایڈریس:</b>\n<code>{address}</code> <i>(کاپی کرنے کے لیے ٹیپ کریں)</i>\n━━━━━━━━━━━━━━━━━━━━\n💡 <i>رقم بھیجنے کے بعد نیچے '⚡ Submit TxHash' دبائیں — خودکار تصدیق کے بعد بیلنس شامل ہو جائے گا!</i>",
+        "invoice_title_single_net": "🪙 <b>USDT ({network}) ڈپازٹ ایڈریس</b>\n\n🔖 <b>انوائس ID:</b> <code>{code}</code>\n🌐 <b>نیٹ ورک:</b> <code>{network}</code>\n\n📌 <b>{network} ایڈریس:</b>\n<code>{address}</code> <i>(کاپی کرنے کے لیے ٹیپ کریں)</i>\n\n━━━━━━━━━━━━━━━━━━━━\n💡 <b>ڈپازٹ کی ہدایات:</b>\n1. اس ایڈریس پر USDT کی <b>کوئی بھی رقم</b> بھیجیں (کم از کم: <code>{symbol}{min_dep:.2f}</code>)۔\n2. رقم بھیجنے کے بعد نیچے <b>'⚡ Submit TxHash / Verify'</b> دبائیں۔\n3. سسٹم آپ کے TxHash سے رقم کا خودکار پتہ لگا کر فوراً والٹ میں شامل کر دے گا!\n━━━━━━━━━━━━━━━━━━━━",
         "btn_check_status": "🔄 اسٹیٹس چیک کریں",
         "btn_submit_tx": "⚡ Submit TxHash / Verify",
         "deposit_confirmed": "🎉 <b>ڈپازٹ کامیابی سے موصول ہوا!</b>\n\n🔖 <b>انوائس ID:</b> <code>{code}</code>\n💰 <b>شامل شدہ رقم:</b> <code>{symbol}{amount:.2f} USDT</code>\n🌐 <b>نیٹ ورک:</b> <code>{network}</code>\n\n✨ <i>آپ کا والٹ بیلنس اپ ڈیٹ ہو گیا ہے۔ خریداری کے لیے تیار!</i>",
@@ -375,13 +360,8 @@ STRINGS = {
         "btn_crypto_gateway": "🪙 تتر / کریپتو (تأیید آنی خودکار)",
         
         "select_crypto_network": "🌐 <b>انتخاب شبکه انتقال تتر (USDT)</b>\n\nلطفاً شبکه مورد نظر برای واریز تتر را انتخاب نمایید:",
-        "deposit_menu": "📥 <b>مبلغ واریز ({network})</b>\n\n📌 <b>شبکه انتخابی:</b> <code>{network}</code>\n📌 <b>حداقل مبلغ واریز:</b> <code>{symbol}{min_dep:.2f}</code>\n\nیک مبلغ را انتخاب کنید یا مبلغ دلخواه وارد نمایید:",
-        "btn_custom_amount": "✏️ مبلغ دلخواه",
-        "custom_amount_prompt": "✏️ <b>ورود مبلغ دلخواه</b>\n\nشبکه: <code>{network}</code>\nلطفاً مبلغ مورد نظر به USDT را ارسال کنید (حداقل <code>{symbol}{min_dep:.2f}</code>):\n<i>(مثال: <code>15</code> یا <code>35.50</code>)</i>",
-        "invalid_amount_min": "❌ <b>مبلغ نامعتبر است!</b>\n\n⚠️ شما مبلغ <code>{symbol}{amount:.2f}</code> را وارد کردید، اما حداقل واریزی <code>{symbol}{min_dep:.2f}</code> می‌باشد.\n\n👉 لطفاً <code>{min_dep:.2f}</code> یا بیشتر وارد نمایید (مثال: <code>10</code> یا <code>25.50</code>):",
-        "invalid_amount_number": "❌ <b>ورودی نامعتبر!</b>\n\n⚠️ استفاده از حروف مجاز نیست.\n👉 لطفاً فقط عدد انگلیسی وارد نمایید (مثال: <code>10</code>, <code>20</code> یا <code>50</code>):",
         
-        "invoice_title_single_net": "🪙 <b>فاکتور پرداخت صادر شد</b>\n\n🔖 <b>شناسه فاکتور:</b> <code>{code}</code>\n🌐 <b>شبکه:</b> <code>{network}</code>\n💵 <b>مبلغ واریزی:</b> <code>{symbol}{amount:.2f} USDT</code>\n⏳ <b>وضعیت:</b> <code>در انتظار پرداخت (INITIAL)</code>\n\n━━━━━━━━━━━━━━━━━━━━\n📌 <b>آدرس کیف پول {network}:</b>\n<code>{address}</code> <i>(برای کپی لمس کنید)</i>\n━━━━━━━━━━━━━━━━━━━━\n💡 <i>پس از انتقال، دکمه '⚡ Submit TxHash' را برای تأیید خودکار و شارژ آنی حساب بزنید!</i>",
+        "invoice_title_single_net": "🪙 <b>آدرس واریز تتر ({network})</b>\n\n🔖 <b>شناسه فاکتور:</b> <code>{code}</code>\n🌐 <b>شبکه:</b> <code>{network}</code>\n\n📌 <b>آدرس کیف پول {network}:</b>\n<code>{address}</code> <i>(برای کپی لمس کنید)</i>\n\n━━━━━━━━━━━━━━━━━━━━\n💡 <b>راهنمای واریز:</b>\n۱. به این آدرس <b>هر مبلغی</b> که مایلید تتر انتقال دهید (حداقل: <code>{symbol}{min_dep:.2f}</code>).\n۲. پس از انتقال، دکمه <b>'⚡ Submit TxHash / Verify'</b> را در زیر بزنید.\n۳. سیستم با بررسی TxHash مبلغ واریزی شما را به صورت خودکار تشخیص داده و فوراً حسابتان را شارژ می‌کند!\n━━━━━━━━━━━━━━━━━━━━",
         "btn_check_status": "🔄 بررسی وضعیت پرداخت",
         "btn_submit_tx": "⚡ Submit TxHash / Verify",
         "deposit_confirmed": "🎉 <b>واریزی تأیید و شارژ شد!</b>\n\n🔖 <b>شناسه فاکتور:</b> <code>{code}</code>\n💰 <b>مبلغ اضافه شده:</b> <code>{symbol}{amount:.2f} USDT</code>\n🌐 <b>شبکه:</b> <code>{network}</code>\n\n✨ <i>موجودی شما با موفقیت به‌روزرسانی شد. خرید خوبی داشته باشید!</i>",
@@ -473,13 +453,8 @@ STRINGS = {
         "btn_crypto_gateway": "🪙 تيذر / كريبتو (تأكيد فوري تلقائي)",
         
         "select_crypto_network": "🌐 <b>اختر شبكة تحويل USDT</b>\n\nيرجى تحديد شبكة البلوك تشين التي ترغب بالتحويل من خلالها:",
-        "deposit_menu": "📥 <b>مبلغ الإيداع ({network})</b>\n\n📌 <b>الشبكة المحددة:</b> <code>{network}</code>\n📌 <b>الحد الأدنى للإيداع:</b> <code>{symbol}{min_dep:.2f}</code>\n\nاختر مبلغاً محدداً أو أدخل مبلغاً مخصصاً:",
-        "btn_custom_amount": "✏️ مبلغ مخصص",
-        "custom_amount_prompt": "✏️ <b>أدخل مبلغ الإيداع</b>\n\nالشبكة: <code>{network}</code>\nيرجى إرسال المبلغ بـ USDT (الحد الأدنى <code>{symbol}{min_dep:.2f}</code>):\n<i>(مثال: <code>15</code> أو <code>35.50</code>)</i>",
-        "invalid_amount_min": "❌ <b>المبلغ غير صالح!</b>\n\n⚠️ لقد أدخلت <code>{symbol}{amount:.2f}</code>، ولكن الحد الأدنى للإيداع هو <code>{symbol}{min_dep:.2f}</code>.\n\n👉 يرجى إدخال <code>{min_dep:.2f}</code> أو أكثر (مثال: <code>10</code> أو <code>25.50</code>):",
-        "invalid_amount_number": "❌ <b>إدخال غير صحيح!</b>\n\n⚠️ لا يسمح باستخدام الحروف أو الرموز.\n👉 يرجى كتابة أرقام إنجليزية فقط (مثال: <code>10</code> أو <code>20</code> أو <code>50</code>):",
         
-        "invoice_title_single_net": "🪙 <b>تم إنشاء فاتورة الدفع</b>\n\n🔖 <b>رقم الفاتورة:</b> <code>{code}</code>\n🌐 <b>الشبكة:</b> <code>{network}</code>\n💵 <b>المبلغ المطلوب:</b> <code>{symbol}{amount:.2f} USDT</code>\n⏳ <b>الحالة:</b> <code>بانتظار الدفع (INITIAL)</code>\n\n━━━━━━━━━━━━━━━━━━━━\n📌 <b>عنوان تحويل {network}:</b>\n<code>{address}</code> <i>(انقر للنسخ)</i>\n━━━━━━━━━━━━━━━━━━━━\n💡 <i>بعد التحويل، اضغط على '⚡ Submit TxHash' للتحقق التلقائي وإضافة الرصيد فوراً!</i>",
+        "invoice_title_single_net": "🪙 <b>عنوان إيداع USDT ({network})</b>\n\n🔖 <b>رقم الفاتورة:</b> <code>{code}</code>\n🌐 <b>الشبكة:</b> <code>{network}</code>\n\n📌 <b>عنوان تحويل {network}:</b>\n<code>{address}</code> <i>(انقر للنسخ)</i>\n\n━━━━━━━━━━━━━━━━━━━━\n💡 <b>تعليمات الإيداع:</b>\n1. أرسل <b>أي مبلغ</b> تريده من USDT إلى هذا العنوان (الحد الأدنى: <code>{symbol}{min_dep:.2f}</code>).\n2. بعد التحويل، اضغط على <b>'⚡ Submit TxHash / Verify'</b> أدناه.\n3. سيقوم النظام تلقائياً بالتحقق من قيمة المبلغ المرسل عبر الـ TxHash وإضافته لمحفظتك فوراً!\n━━━━━━━━━━━━━━━━━━━━",
         "btn_check_status": "🔄 التحقق من حالة الدفع",
         "btn_submit_tx": "⚡ Submit TxHash / Verify",
         "deposit_confirmed": "🎉 <b>تم تأكيد الإيداع وإضافة الرصيد!</b>\n\n🔖 <b>رقم الفاتورة:</b> <code>{code}</code>\n💰 <b>المبلغ المضاف:</b> <code>{symbol}{amount:.2f} USDT</code>\n🌐 <b>الشبكة:</b> <code>{network}</code>\n\n✨ <i>تم تحديث رصيدك بنجاح. تسوق ممتع!</i>",

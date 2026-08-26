@@ -406,7 +406,7 @@ def main():
     app.add_handler(CallbackQueryHandler(user_h.show_wallet, pattern="^user_wallet$"))
     app.add_handler(CallbackQueryHandler(user_h.show_deposit_options, pattern="^user_deposit$"))
     app.add_handler(CallbackQueryHandler(user_h.show_crypto_network_selection, pattern="^select_dep_crypto$"))
-    app.add_handler(CallbackQueryHandler(user_h.show_crypto_deposit_menu, pattern="^selnet_"))
+    app.add_handler(CallbackQueryHandler(user_h.handle_select_crypto_network, pattern="^selnet_"))
     app.add_handler(CallbackQueryHandler(user_h.show_manual_deposit_instructions, pattern="^select_dep_m_"))
     app.add_handler(CallbackQueryHandler(user_h.handle_preset_deposit, pattern="^create_dep_"))
     app.add_handler(CallbackQueryHandler(user_h.check_deposit_status, pattern="^chkdep_"))
