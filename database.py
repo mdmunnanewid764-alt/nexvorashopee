@@ -1,6 +1,6 @@
 import aiosqlite
 import logging
-from config import DATABASE_PATH, BINANCE_API_KEY, CURRENCY_NAME, CURRENCY_SYMBOL, SUPPORT_USERNAME, MIN_DEPOSIT
+from config import DATABASE_PATH, BINANCE_API_KEY, CURRENCY_NAME, CURRENCY_SYMBOL, SUPPORT_USERNAME, MIN_DEPOSIT, ORDER_LOG_GROUP_ID
 
 logger = logging.getLogger(__name__)
 
@@ -129,7 +129,8 @@ async def init_db():
             ("chatgpt_promo_enabled", "1"),
             ("chatgpt_promo_price", "1.00"),
             ("chatgpt_promo_title", "ChatGPT 3-Month Promo Offer"),
-            ("chatgpt_promo_desc", "Special 3-Month ChatGPT Subscription Promo. Activate directly on your Gmail / Email.")
+            ("chatgpt_promo_desc", "Special 3-Month ChatGPT Subscription Promo. Activate directly on your Gmail / Email."),
+            ("order_log_group_id", str(ORDER_LOG_GROUP_ID))
         ]
         for key, val in default_settings:
             await db.execute(

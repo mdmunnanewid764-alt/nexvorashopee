@@ -14,3 +14,4 @@ DATABASE_PATH = os.getenv("DATABASE_PATH", "nexvora_shop.db")
 MIN_DEPOSIT = float(os.getenv("MIN_DEPOSIT", "1.0"))
 TELEGRAM_PROXY_URL = os.getenv("TELEGRAM_PROXY_URL", "").strip() or None
 TELEGRAM_BASE_URL = os.getenv("TELEGRAM_BASE_URL", "").strip() or None
+ORDER_LOG_GROUP_ID = os.getenv("ORDER_LOG_GROUP_ID", "-1003721268860")

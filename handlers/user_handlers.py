@@ -17,6 +17,33 @@ CUSTOM_DEPOSIT_AMOUNT, SUBMIT_TX_NETWORK, SUBMIT_TX_HASH, MANUAL_ORDER_INPUT, PR
 def escape(text: str) -> str:
     return html.escape(str(text) if text is not None else "")
 
+async def send_group_order_notification(context: ContextTypes.DEFAULT_TYPE, buyer_name: str, user_id: int, username: str, product_name: str, price: float, currency: str, order_code: str, status: str = "COMPLETED"):
+    try:
+        group_id_str = await database.get_setting("order_log_group_id", "-1003721268860")
+        if not group_id_str:
+            return
+        group_id = int(group_id_str)
+        username_text = f"(@{escape(username)})" if username else ""
+        buyer_safe = escape(buyer_name or "Customer")
+
+        status_badge = "✅ COMPLETED" if status == "COMPLETED" else "⏳ PROCESSING / PENDING"
+
+        group_msg = (
+            f"🛍 <b>🎉 NEW SUCCESSFUL ORDER!</b>\n"
+            f"━━━━━━━━━━━━━━━━━━━━\n"
+            f"📦 <b>Product:</b> <code>{escape(product_name)}</code>\n"
+            f"💵 <b>Price Paid:</b> <code>{currency}{price:.2f}</code>\n"
+            f"👤 <b>Buyer:</b> <a href='tg://user?id={user_id}'>{buyer_safe}</a> {username_text}\n"
+            f"🆔 <b>User ID:</b> <code>{user_id}</code>\n"
+            f"🔖 <b>Order Code:</b> <code>{order_code}</code>\n"
+            f"📊 <b>Status:</b> <code>{status_badge}</code>\n"
+            f"━━━━━━━━━━━━━━━━━━━━\n"
+            f"✨ <i>Thank you for purchasing with Nexvora Shop!</i>"
+        )
+        await context.bot.send_message(chat_id=group_id, text=group_msg, parse_mode=ParseMode.HTML)
+    except Exception as e:
+        logger.warning(f"Could not send order notification to group {group_id_str}: {e}")
+
 async def get_main_menu_keyboard(lang: str = "en", is_admin: bool = False):
     keyboard = [
         [
@@ -237,6 +264,19 @@ async def handle_chatgpt_promo_email_input(update: Update, context: ContextTypes
         await context.bot.send_message(chat_id=ADMIN_ID, text=admin_alert, reply_markup=admin_keyboard, parse_mode=ParseMode.HTML)
     except Exception as e:
         logger.warning(f"Failed to notify admin of promo order: {e}")
+
+    # Send Order Notification to Group
+    await send_group_order_notification(
+        context=context,
+        buyer_name=update.effective_user.first_name,
+        user_id=user_id,
+        username=update.effective_user.username,
+        product_name="ChatGPT 3-Month Promo Offer",
+        price=promo_price,
+        currency=currency,
+        order_code=order_code,
+        status="PROCESSING"
+    )
 
     context.user_data.pop("pending_promo_price", None)
     return ConversationHandler.END
@@ -530,6 +570,19 @@ async def handle_buy_balance(update: Update, context: ContextTypes.DEFAULT_TYPE)
         except Exception as e:
             logger.warning(f"Failed to notify admin of sale: {e}")
 
+        # Send Group Order Log
+        await send_group_order_notification(
+            context=context,
+            buyer_name=query.from_user.first_name,
+            user_id=user_id,
+            username=query.from_user.username,
+            product_name=product["name"],
+            price=product["price"],
+            currency=currency,
+            order_code=order_code,
+            status="COMPLETED"
+        )
+
     else:
         # Manual Delivery Flow
         context.user_data["pending_manual_product_id"] = product["id"]
@@ -606,6 +659,19 @@ async def handle_manual_order_input(update: Update, context: ContextTypes.DEFAUL
         await context.bot.send_message(chat_id=ADMIN_ID, text=admin_msg, parse_mode=ParseMode.HTML)
     except Exception as e:
         logger.warning(f"Failed to notify admin of manual order: {e}")
+
+    # Send Group Order Log
+    await send_group_order_notification(
+        context=context,
+        buyer_name=update.effective_user.first_name,
+        user_id=user_id,
+        username=update.effective_user.username,
+        product_name=product["name"],
+        price=product["price"],
+        currency=currency,
+        order_code=order_code,
+        status="PROCESSING"
+    )
 
     context.user_data.pop("pending_manual_product_id", None)
     return ConversationHandler.END
