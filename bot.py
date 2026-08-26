@@ -184,11 +184,12 @@ async def post_init(application: Application):
 
 def main():
     request_kwargs = {
-        "connection_pool_size": 16,
-        "connect_timeout": 30.0,
-        "read_timeout": 30.0,
-        "write_timeout": 30.0,
-        "pool_timeout": 30.0
+        "connection_pool_size": 64,
+        "connect_timeout": 15.0,
+        "read_timeout": 15.0,
+        "write_timeout": 15.0,
+        "pool_timeout": 15.0,
+        "http_version": "1.1"
     }
     if TELEGRAM_PROXY_URL:
         request_kwargs["proxy"] = TELEGRAM_PROXY_URL
@@ -359,8 +360,13 @@ def main():
 
     app.add_error_handler(error_handler)
 
-    logger.info("🤖 Starting Nexvora Shopee Bot...")
-    app.run_polling(allowed_updates=Update.ALL_TYPES, drop_pending_updates=True)
+    logger.info("🤖 Starting Nexvora Shopee Bot (Ultra High Speed Polling)...")
+    app.run_polling(
+        poll_interval=0.0,
+        timeout=20,
+        allowed_updates=["message", "callback_query"],
+        drop_pending_updates=True
+    )
 
 if __name__ == "__main__":
     main()

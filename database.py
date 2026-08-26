@@ -22,11 +22,13 @@ logger = logging.getLogger(__name__)
 
 _pool: asyncpg.Pool = None
 
-# High-speed in-memory caches (0ms latency)
+# High-speed in-memory caches (0ms instant RAM access)
 _settings_cache: dict[str, str] = {}
 _user_lang_cache: dict[int, str] = {}
 _categories_cache: list[dict] = None
 _categories_cache_time: float = 0
+_products_by_cat_cache: dict[int, list[dict]] = {}
+_products_by_cat_time: dict[int, float] = {}
 
 async def get_pool() -> asyncpg.Pool:
     global _pool
@@ -34,11 +36,11 @@ async def get_pool() -> asyncpg.Pool:
         try:
             _pool = await asyncpg.create_pool(
                 dsn=DATABASE_URL,
-                min_size=2,
-                max_size=15,
+                min_size=3,
+                max_size=20,
                 ssl="require",
                 statement_cache_size=0,
-                command_timeout=30
+                command_timeout=20
             )
             logger.info("Supabase PostgreSQL pool created via DATABASE_URL.")
         except Exception as e:
@@ -49,11 +51,11 @@ async def get_pool() -> asyncpg.Pool:
                 user=SUPABASE_USER,
                 password=SUPABASE_PASS,
                 database=SUPABASE_DB,
-                min_size=2,
-                max_size=15,
+                min_size=3,
+                max_size=20,
                 ssl="require",
                 statement_cache_size=0,
-                command_timeout=30
+                command_timeout=20
             )
             logger.info("Supabase PostgreSQL pool created via host parameters.")
     return _pool
@@ -68,6 +70,11 @@ def invalidate_category_cache():
     global _categories_cache, _categories_cache_time
     _categories_cache = None
     _categories_cache_time = 0
+
+def invalidate_product_cache():
+    global _products_by_cat_cache, _products_by_cat_time
+    _products_by_cat_cache.clear()
+    _products_by_cat_time.clear()
 
 async def init_db():
     """
@@ -200,7 +207,7 @@ async def init_db():
         for r in rows:
             _settings_cache[r["key"]] = r["value"]
 
-    logger.info(f"Supabase PostgreSQL initialized & {_settings_cache.__len__()} settings cached.")
+    logger.info(f"Supabase PostgreSQL initialized & {len(_settings_cache)} settings cached.")
 
 
 # --------------------- USER HELPERS ---------------------
@@ -315,6 +322,7 @@ async def get_category(category_id: int):
 
 async def delete_category(category_id: int):
     invalidate_category_cache()
+    invalidate_product_cache()
     async with get_connection() as conn:
         await conn.execute("DELETE FROM categories WHERE id = $1", category_id)
         return True
@@ -323,6 +331,7 @@ async def delete_category(category_id: int):
 # --------------------- PRODUCT HELPERS ---------------------
 
 async def add_product(category_id: int, name: str, description: str, price: float, image_url: str = None, delivery_type: str = "digital"):
+    invalidate_product_cache()
     async with get_connection() as conn:
         return await conn.fetchval("""
             INSERT INTO products (category_id, name, description, price, image_url, delivery_type)
@@ -331,9 +340,16 @@ async def add_product(category_id: int, name: str, description: str, price: floa
         """, category_id, name, description, float(price), image_url, delivery_type)
 
 async def get_products_by_category(category_id: int):
+    global _products_by_cat_cache, _products_by_cat_time
+    now = time.time()
+    if category_id in _products_by_cat_cache and (now - _products_by_cat_time.get(category_id, 0)) < 30:
+        return _products_by_cat_cache[category_id]
     async with get_connection() as conn:
         rows = await conn.fetch("SELECT * FROM products WHERE category_id = $1 AND is_active = 1 ORDER BY id ASC", category_id)
-        return [dict(r) for r in rows]
+        res = [dict(r) for r in rows]
+        _products_by_cat_cache[category_id] = res
+        _products_by_cat_time[category_id] = now
+        return res
 
 async def get_all_products(limit: int = 100):
     async with get_connection() as conn:
@@ -356,6 +372,7 @@ async def get_product(product_id: int):
         return dict(row) if row else None
 
 async def update_product(product_id: int, name: str, description: str, price: float, image_url: str = None, delivery_type: str = "digital"):
+    invalidate_product_cache()
     async with get_connection() as conn:
         await conn.execute("""
             UPDATE products 
@@ -365,6 +382,7 @@ async def update_product(product_id: int, name: str, description: str, price: fl
         return True
 
 async def delete_product(product_id: int):
+    invalidate_product_cache()
     async with get_connection() as conn:
         await conn.execute("DELETE FROM products WHERE id = $1", product_id)
         return True
