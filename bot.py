@@ -102,7 +102,16 @@ async def status_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     dep = await database.get_deposit(code)
     if dep:
         status_res = await payment_gateway.get_payment_status(code)
-        status = status_res.get("order", {}).get("status", dep["status"])
+        order_info = status_res.get("order", {})
+        status = order_info.get("status", dep["status"]).upper()
+        if status == "PAID" and not dep.get("credited"):
+            amount = float(order_info.get("orderAmount", dep["order_amount"]))
+            paid_net = order_info.get("paidNetwork") or dep.get("paid_network") or "CRYPTO"
+            tx_id = order_info.get("transactionId") or ""
+            await database.update_user_balance(dep["user_id"], amount, is_deposit=True)
+            await database.mark_deposit_paid(code, paid_network=paid_net, tx_hash=tx_id)
+            dep = await database.get_deposit(code)
+
         await update.message.reply_text(
             f"🔍 <b>Deposit Status: {code}</b>\n\n"
             f"💰 Amount: <code>${dep['order_amount']:.2f} {dep['currency']}</code>\n"

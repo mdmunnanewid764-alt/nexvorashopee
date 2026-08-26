@@ -1,6 +1,8 @@
 import aiohttp
 import logging
 import io
+import json
+import asyncio
 import qrcode
 from config import BINANCE_API_BASE_URL
 import database
@@ -24,7 +26,7 @@ class BinancePaymentGateway:
 
     async def create_payment(self, amount: float, user_id: int, goods_name: str = "Wallet Deposit", goods_detail: str = "") -> dict:
         """
-        Creates a new payment invoice on Binance Pay & Multi-Chain API.
+        Creates a new payment order supporting Binance Pay (0% Gas) as well as direct blockchain deposits (BEP20, TRC20, ERC20).
         """
         import time
         merchant_trade_no = f"DEP_{user_id}_{int(time.time())}"
@@ -47,14 +49,16 @@ class BinancePaymentGateway:
                     
                     if resp.status in (200, 201) and data.get("success"):
                         order_info = data.get("order", {})
-                        # Save to database
                         crypto_wallets = order_info.get("cryptoWallets", {})
+                        checkout_url = order_info.get("checkoutUrl", f"{self.base_url}/checkout/{merchant_trade_no}")
+                        
+                        # Save deposit to database
                         await database.save_deposit(
                             merchant_trade_no=order_info.get("merchantTradeNo", merchant_trade_no),
                             user_id=user_id,
                             order_amount=amount,
                             currency=order_info.get("currency", "USDT"),
-                            checkout_url=order_info.get("checkoutUrl", ""),
+                            checkout_url=checkout_url,
                             bep20_addr=crypto_wallets.get("bep20", ""),
                             trc20_addr=crypto_wallets.get("trc20", ""),
                             erc20_addr=crypto_wallets.get("erc20", ""),
@@ -80,7 +84,7 @@ class BinancePaymentGateway:
 
     async def get_payment_status(self, merchant_trade_no: str) -> dict:
         """
-        Queries status of an existing order.
+        Queries real-time status of an order via GET /api/v1/payments/:merchantTradeNo
         """
         url = f"{self.base_url}/api/v1/payments/{merchant_trade_no}"
         headers = await self._get_headers()
@@ -111,7 +115,7 @@ class BinancePaymentGateway:
 
     async def submit_tx_hash(self, merchant_trade_no: str, network: str, tx_hash: str) -> dict:
         """
-        Submits on-chain txHash verification for BEP20, TRC20, ERC20.
+        Submits on-chain txHash verification for BEP20, TRC20, ERC20 via POST /api/v1/payments/submit-tx
         """
         url = f"{self.base_url}/api/v1/payments/submit-tx"
         headers = await self._get_headers()
@@ -146,6 +150,41 @@ class BinancePaymentGateway:
                 "success": False,
                 "message": f"Connection error: {str(e)}"
             }
+
+    async def listen_payment_stream(self, merchant_trade_no: str, on_paid_callback, timeout_seconds: int = 600):
+        """
+        Connects to Server-Sent Events (SSE) stream: GET /api/v1/payments/stream/:merchantTradeNo
+        Emits instant live payment confirmation when customer pays.
+        """
+        url = f"{self.base_url}/api/v1/payments/stream/{merchant_trade_no}"
+        headers = await self._get_headers()
+
+        try:
+            timeout = aiohttp.ClientTimeout(total=timeout_seconds)
+            async with aiohttp.ClientSession(timeout=timeout) as session:
+                async with session.get(url, headers=headers) as resp:
+                    if resp.status != 200:
+                        logger.debug(f"SSE stream response {resp.status} for {merchant_trade_no}")
+                        return
+
+                    async for line in resp.content:
+                        decoded = line.decode("utf-8").strip()
+                        if decoded.startswith("data:"):
+                            raw_json = decoded[5:].strip()
+                            if raw_json:
+                                try:
+                                    event = json.loads(raw_json)
+                                    order = event.get("order") or {}
+                                    if order.get("status") == "PAID" or event.get("status") == "PAID":
+                                        logger.info(f"⚡ SSE Real-Time Payment PAID Event received for {merchant_trade_no}!")
+                                        await on_paid_callback(order or event)
+                                        break
+                                except Exception as json_err:
+                                    logger.debug(f"SSE JSON parse error: {json_err}")
+        except asyncio.TimeoutError:
+            logger.debug(f"SSE stream timeout for {merchant_trade_no}")
+        except Exception as e:
+            logger.debug(f"SSE stream closed for {merchant_trade_no}: {e}")
 
 def generate_qr_image(text: str) -> io.BytesIO:
     """

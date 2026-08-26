@@ -1115,9 +1115,14 @@ async def execute_create_deposit(update: Update, context: ContextTypes.DEFAULT_T
         address=target_address
     )
 
+    checkout_url = order.get("checkoutUrl") or f"https://binance-api-yrz4.onrender.com/checkout/{merchant_trade_no}"
+
     buttons = [
         [
             InlineKeyboardButton(t("btn_submit_tx", lang), callback_data=f"txstart_{merchant_trade_no}")
+        ],
+        [
+            InlineKeyboardButton(t("btn_binance_pay_checkout", lang), url=checkout_url)
         ],
         [
             InlineKeyboardButton(t("btn_back", lang), callback_data="select_dep_crypto")
@@ -1125,6 +1130,29 @@ async def execute_create_deposit(update: Update, context: ContextTypes.DEFAULT_T
     ]
 
     keyboard = InlineKeyboardMarkup(buttons)
+
+    # Real-Time SSE background listener for instant auto-crediting
+    async def _on_sse_paid(order_data):
+        try:
+            status = str(order_data.get("status", "PAID")).upper()
+            if status == "PAID":
+                db_dep = await database.get_deposit(merchant_trade_no)
+                if db_dep and not db_dep.get("credited"):
+                    amount_paid = float(order_data.get("orderAmount", db_dep["order_amount"]))
+                    paid_net = order_data.get("paidNetwork") or selected_net
+                    tx_id = order_data.get("transactionId") or ""
+                    await database.update_user_balance(user_id, amount_paid, is_deposit=True)
+                    await database.mark_deposit_paid(merchant_trade_no, paid_network=paid_net, tx_hash=tx_id)
+
+                    user_lang = await database.get_user_language(user_id)
+                    curr = await database.get_setting("currency_symbol", "$")
+                    conf_text = t("deposit_confirmed", user_lang, code=merchant_trade_no, symbol=curr, amount=amount_paid, network=paid_net)
+                    wallet_kb = InlineKeyboardMarkup([[InlineKeyboardButton(t("btn_wallet", user_lang), callback_data="user_wallet")]])
+                    await context.bot.send_message(chat_id=user_id, text=conf_text, reply_markup=wallet_kb, parse_mode=ParseMode.HTML)
+        except Exception as sse_err:
+            logger.debug(f"SSE background fulfillment error: {sse_err}")
+
+    asyncio.create_task(payment_gateway.listen_payment_stream(merchant_trade_no, _on_sse_paid))
 
     if is_callback:
         await update.callback_query.edit_message_text(invoice_text, reply_markup=keyboard, parse_mode=ParseMode.HTML)
